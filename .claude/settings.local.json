@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(taskkill /F /IM electron.exe)",
+      "PowerShell(Stop-Process -Name \"electron\" -Force -ErrorAction SilentlyContinue)",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(cat .eslintrc.cjs)",
+      "Bash(cat .eslintrc.js)",
+      "Bash(cat .eslintrc.json)",
+      "Bash(cat eslint.config.js)",
+      "Bash(cat eslint.config.ts)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('eslintConfig', {}\\), indent=2\\)\\); print\\('---'\\); e=d.get\\('devDependencies',{}\\); [print\\(k,v\\) for k,v in e.items\\(\\) if 'eslint' in k.lower\\(\\) or 'prettier' in k.lower\\(\\)]\")",
+      "Bash(ls eslint*)",
+      "Bash(ls .eslint*)",
+      "Bash(npx prettier *)"
+    ]
+  }
+}
