@@ -243,7 +243,7 @@ export function DraftOrdinancesPage() {
       endpoint: 'laoag_draft_ordinance',
       sortParam: 'sessionNo|desc',
       dataKey: 'draftOrdinance',
-      limit: 100,
+      limit: 0,
       searchQuery: debouncedSearch
     })
   const [selected, setSelected] = useState<DraftOrdinance | null>(null)

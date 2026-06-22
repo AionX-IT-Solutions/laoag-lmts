@@ -24,6 +24,8 @@ export function useListData<T>({
   const direction = (parts[1] === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc'
   const filtersKey = JSON.stringify(filters ?? [])
   const isSearching = (searchQuery ?? '').trim().length > 0
+  // limit === 0 means "fetch all records" — disables pagination entirely
+  const fetchAll = limit === 0
 
   const [items, setItems] = useState<(T & { id: string })[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,11 +50,11 @@ export function useListData<T>({
       const result = await fetchDocs<T>(collectionName, {
         orderByField,
         direction,
-        pageSize: isSearching ? undefined : limit,
+        pageSize: isSearching || fetchAll ? undefined : limit,
         filters: filtersRef.current
       })
       setItems(result.items)
-      setHasMore(isSearching ? false : result.hasMore)
+      setHasMore(isSearching || fetchAll ? false : result.hasMore)
       lastDocRef.current = result.lastDoc
     } catch (err) {
       console.error(`[useListData] reload failed for ${collectionName}:`, err)
@@ -60,10 +62,10 @@ export function useListData<T>({
       setLoading(false)
       busyRef.current = false
     }
-  }, [collectionName, orderByField, direction, limit, filtersKey, isSearching]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [collectionName, orderByField, direction, limit, filtersKey, isSearching, fetchAll]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadMore = useCallback(async () => {
-    if (busyRef.current || !lastDocRef.current || isSearchingRef.current) return
+    if (busyRef.current || !lastDocRef.current || isSearchingRef.current || fetchAll) return
     busyRef.current = true
     setLoadingMore(true)
     try {
@@ -97,7 +99,7 @@ export function useListData<T>({
     items,
     loading,
     loadingMore,
-    hasMore: isSearching ? false : hasMore,
+    hasMore: isSearching || fetchAll ? false : hasMore,
     reload,
     loadMore,
     sortField: orderByField,

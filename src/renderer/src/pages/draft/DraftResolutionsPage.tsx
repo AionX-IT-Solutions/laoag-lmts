@@ -243,7 +243,7 @@ export function DraftResolutionsPage() {
       endpoint: 'laoag_draft_resolution',
       sortParam: 'sessionNo|desc',
       dataKey: 'draftResolution',
-      limit: 100,
+      limit: 0,
       searchQuery: debouncedSearch
     })
   const [selected, setSelected] = useState<DraftResolution | null>(null)
