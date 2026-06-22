@@ -249,16 +249,20 @@ export interface CommitteeReportListResponse {
 export interface DraftOrdinance {
   id: string
   draftOrdinanceNumber: string
-  category: string
   title: string
   author: string
+  sender: string
+  sessionNo: string
   tag: string
+  reading: string
+  actionCommittee: string
+  actionReferred: string
+  dateOfReading: string
+  timeOfReading: string
   fileType: string
   filePath: string
-  dateReceived: string
-  action: string
-  remarks: string
   created?: string
+  updated?: string
 }
 
 export interface DraftOrdinanceListResponse {
@@ -271,16 +275,21 @@ export interface DraftOrdinanceListResponse {
 export interface DraftResolution {
   id: string
   draftResolutionNumber: string
-  category: string
   title: string
   author: string
+  initialAuthor: string
+  sender: string
+  sessionNo: string
   tag: string
+  reading: string
+  actionOfOfficer: string
+  dateReceived: string
+  dateOfReading: string
+  timeReceived: string
   fileType: string
   filePath: string
-  dateReceived: string
-  action: string
-  remarks: string
   created?: string
+  updated?: string
 }
 
 export interface DraftResolutionListResponse {

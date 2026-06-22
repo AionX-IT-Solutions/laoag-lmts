@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useListData } from '../../hooks/useListData'
 import { useDebounce } from '../../hooks/useDebounce'
 import { FileEdit, Plus, RefreshCw, Pencil, Trash2, ExternalLink } from 'lucide-react'
@@ -19,34 +19,38 @@ import { FormField, Input, Select } from '../../components/ui/FormField'
 import { FileUploadField } from '../../components/ui/FileUploadField'
 import { Spinner } from '../../components/ui/Spinner'
 import type { DraftOrdinance } from '../../types'
-import { formatDate, getFullName, toInputDate, sortByField } from '../../lib/utils'
+import { getFullName, sortByField } from '../../lib/utils'
 
-const CATEGORIES = [
-  { value: 'General Ordinance', label: 'General Ordinance' },
-  { value: 'Appropriation', label: 'Appropriation' },
-  { value: 'Tax Ordinance', label: 'Tax Ordinance' }
-]
-const ACTION_OPTIONS = [
-  { value: 'First Reading', label: 'First Reading' },
-  { value: 'Second Reading', label: 'Second Reading' },
-  { value: 'Third Reading', label: 'Third Reading' },
+const READING_OPTIONS = [
+  { value: '1st reading', label: '1st Reading' },
+  { value: '2nd reading', label: '2nd Reading' },
+  { value: '3rd reading', label: '3rd Reading' },
   { value: 'Approved', label: 'Approved' },
   { value: 'Disapproved', label: 'Disapproved' }
 ]
 
 const columns: Column<DraftOrdinance>[] = [
-  { key: 'draftOrdinanceNumber', header: 'Draft No.', width: 'w-28' },
-  { key: 'tag', header: 'Tag', width: 'w-28' },
+  { key: 'draftOrdinanceNumber', header: 'Draft No.', width: 'w-48' },
+  { key: 'sessionNo', header: 'Session No.', width: 'w-28' },
+  { key: 'reading', header: 'Reading', width: 'w-28' },
   { key: 'title', header: 'Title' },
-  { key: 'author', header: 'Author', width: 'w-32' },
-  { key: 'action', header: 'Action', width: 'w-32' },
-  {
-    key: 'dateReceived',
-    header: 'Date Received',
-    width: 'w-28',
-    render: (r) => <span className="text-xs">{formatDate(r.dateReceived)}</span>
-  }
+  { key: 'tag', header: 'Committee', width: 'w-48' },
+  { key: 'actionCommittee', header: 'Action', width: 'w-48' }
 ]
+
+const EMPTY_FORM = {
+  draftOrdinanceNumber: '',
+  title: '',
+  author: '',
+  sender: '',
+  sessionNo: '',
+  tag: '',
+  reading: '1st reading',
+  actionCommittee: '',
+  actionReferred: '',
+  dateOfReading: '',
+  timeOfReading: ''
+}
 
 function DraftOrdFormModal({
   open,
@@ -64,16 +68,7 @@ function DraftOrdFormModal({
   const isEdit = !!record
   const [saving, setSaving] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const [form, setForm] = useState({
-    draftOrdinanceNumber: '',
-    category: 'General Ordinance',
-    title: '',
-    author: '',
-    tag: '',
-    dateReceived: '',
-    action: 'First Reading',
-    remarks: ''
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
 
   useEffect(() => {
     if (open) {
@@ -81,24 +76,18 @@ function DraftOrdFormModal({
         record
           ? {
               draftOrdinanceNumber: record.draftOrdinanceNumber ?? '',
-              category: record.category ?? 'General Ordinance',
               title: record.title ?? '',
               author: record.author ?? '',
+              sender: record.sender ?? '',
+              sessionNo: record.sessionNo ?? '',
               tag: record.tag ?? '',
-              dateReceived: toInputDate(record.dateReceived),
-              action: record.action ?? 'First Reading',
-              remarks: record.remarks ?? ''
+              reading: record.reading ?? '1st reading',
+              actionCommittee: record.actionCommittee ?? '',
+              actionReferred: record.actionReferred ?? '',
+              dateOfReading: record.dateOfReading ?? '',
+              timeOfReading: record.timeOfReading ?? ''
             }
-          : {
-              draftOrdinanceNumber: '',
-              category: 'General Ordinance',
-              title: '',
-              author: '',
-              tag: '',
-              dateReceived: '',
-              action: 'First Reading',
-              remarks: ''
-            }
+          : EMPTY_FORM
       )
       setFile(null)
     }
@@ -107,8 +96,7 @@ function DraftOrdFormModal({
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit() {
     if (!form.draftOrdinanceNumber.trim() || !form.title.trim()) {
       toast.error('Draft number and Title are required')
       return
@@ -120,8 +108,8 @@ function DraftOrdFormModal({
           'laoag_draft_ordinance',
           record!.id,
           { ...form },
-          'draftOrdinances',
-          `DraftOrd_${form.draftOrdinanceNumber}`,
+          'DraftOrdinances',
+          `OrdinanceNo._${form.draftOrdinanceNumber}`,
           file,
           record?.filePath ?? '',
           record?.fileType ?? ''
@@ -130,8 +118,8 @@ function DraftOrdFormModal({
         await addDocumentWithFile(
           'laoag_draft_ordinance',
           { ...form },
-          'draftOrdinances',
-          `DraftOrd_${form.draftOrdinanceNumber}`,
+          'DraftOrdinances',
+          `OrdinanceNo._${form.draftOrdinanceNumber}`,
           file
         )
       await logActivity(
@@ -157,7 +145,7 @@ function DraftOrdFormModal({
           <button className="btn-secondary" onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+          <button className="btn-primary" onClick={() => handleSubmit()} disabled={saving}>
             {saving ? (
               <>
                 <Spinner size="sm" className="text-white" />
@@ -171,11 +159,8 @@ function DraftOrdFormModal({
       }
     >
       <form className="grid grid-cols-2 gap-4">
-        <FormField label="Draft Ordinance Number" required>
+        <FormField label="Draft Ordinance Number" required className="col-span-2">
           <Input value={form.draftOrdinanceNumber} onChange={set('draftOrdinanceNumber')} />
-        </FormField>
-        <FormField label="Category">
-          <Select options={CATEGORIES} value={form.category} onChange={set('category')} />
         </FormField>
         <FormField label="Title" required className="col-span-2">
           <Input value={form.title} onChange={set('title')} />
@@ -183,17 +168,37 @@ function DraftOrdFormModal({
         <FormField label="Author">
           <Input value={form.author} onChange={set('author')} />
         </FormField>
-        <FormField label="Tag">
+        <FormField label="Sender">
+          <Input value={form.sender} onChange={set('sender')} />
+        </FormField>
+        <FormField label="Session No.">
+          <Input value={form.sessionNo} onChange={set('sessionNo')} placeholder="e.g. 13SP_18th" />
+        </FormField>
+        <FormField label="Reading">
+          <Select options={READING_OPTIONS} value={form.reading} onChange={set('reading')} />
+        </FormField>
+        <FormField label="Committee / Tag" className="col-span-2">
           <Input value={form.tag} onChange={set('tag')} />
         </FormField>
-        <FormField label="Date Received">
-          <Input type="date" value={form.dateReceived} onChange={set('dateReceived')} />
+        <FormField label="Action (Committee)" className="col-span-2">
+          <Input value={form.actionCommittee} onChange={set('actionCommittee')} />
         </FormField>
-        <FormField label="Action">
-          <Select options={ACTION_OPTIONS} value={form.action} onChange={set('action')} />
+        <FormField label="Action (Referred)" className="col-span-2">
+          <Input value={form.actionReferred} onChange={set('actionReferred')} />
         </FormField>
-        <FormField label="Remarks" className="col-span-2">
-          <Input value={form.remarks} onChange={set('remarks')} />
+        <FormField label="Date of Reading">
+          <Input
+            value={form.dateOfReading}
+            onChange={set('dateOfReading')}
+            placeholder="e.g. Tuesday, June 17, 2025"
+          />
+        </FormField>
+        <FormField label="Time of Reading">
+          <Input
+            value={form.timeOfReading}
+            onChange={set('timeOfReading')}
+            placeholder="e.g. 10:00:00 am"
+          />
         </FormField>
         <div className="col-span-2">
           <FileUploadField value={file} onChange={setFile} />
@@ -233,6 +238,7 @@ export function DraftOrdinancesPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
   const filtered = useMemo(() => {
     const base = items as unknown as DraftOrdinance[]
     const q = debouncedSearch.toLowerCase()
@@ -267,8 +273,8 @@ export function DraftOrdinancesPage() {
       await deleteDocumentWithFile(
         'laoag_draft_ordinance',
         selected.id,
-        'draftOrdinances',
-        `DraftOrd_${selected.draftOrdinanceNumber}`
+        'DraftOrdinances',
+        `OrdinanceNo._${selected.draftOrdinanceNumber}`
       )
       await logActivity(`Deleted Draft Ordinance ${selected.draftOrdinanceNumber}`)
       toast.success('Deleted')
@@ -323,13 +329,13 @@ export function DraftOrdinancesPage() {
             </>
           }
         />
-        <div className="flex justify-end mb-4 flex-shrink-0">
+        <div className="flex justify-end mb-4 shrink-0">
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search by number or title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input-field !w-56 !py-2"
+            className="input-field w-64! py-2!"
           />
         </div>
         <div className="card flex flex-col flex-1 min-h-0">

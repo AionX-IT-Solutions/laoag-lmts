@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useListData } from '../../hooks/useListData'
 import { useDebounce } from '../../hooks/useDebounce'
 import { FileEdit, Plus, RefreshCw, Pencil, Trash2, ExternalLink } from 'lucide-react'
@@ -19,33 +19,44 @@ import { FormField, Input, Select } from '../../components/ui/FormField'
 import { FileUploadField } from '../../components/ui/FileUploadField'
 import { Spinner } from '../../components/ui/Spinner'
 import type { DraftResolution } from '../../types'
-import { formatDate, getFullName, toInputDate, sortByField } from '../../lib/utils'
+import { formatDate, getFullName, sortByField } from '../../lib/utils'
 
-const CATEGORIES = [
-  { value: 'General Resolutions', label: 'General Resolutions' },
-  { value: 'Commendations', label: 'Commendations' },
-  { value: 'Posthumous', label: 'Posthumous' }
-]
-const ACTION_OPTIONS = [
-  { value: 'First Reading', label: 'First Reading' },
-  { value: 'Second Reading', label: 'Second Reading' },
+const READING_OPTIONS = [
+  { value: '1st reading', label: '1st Reading' },
+  { value: '2nd reading', label: '2nd Reading' },
+  { value: '3rd reading', label: '3rd Reading' },
   { value: 'Approved', label: 'Approved' },
   { value: 'Disapproved', label: 'Disapproved' }
 ]
 
 const columns: Column<DraftResolution>[] = [
-  { key: 'draftResolutionNumber', header: 'Draft No.', width: 'w-28' },
-  { key: 'tag', header: 'Tag', width: 'w-28' },
+  { key: 'draftResolutionNumber', header: 'Draft No.', width: 'w-48' },
+  { key: 'sessionNo', header: 'Session No.', width: 'w-28' },
+  { key: 'reading', header: 'Reading', width: 'w-28' },
   { key: 'title', header: 'Title' },
-  { key: 'author', header: 'Author', width: 'w-32' },
-  { key: 'action', header: 'Action', width: 'w-32' },
+  { key: 'tag', header: 'Author/Sponsor', width: 'w-48' },
   {
     key: 'dateReceived',
-    header: 'Date',
-    width: 'w-28',
+    header: 'Date Received',
+    width: 'w-32',
     render: (r) => <span className="text-xs">{formatDate(r.dateReceived)}</span>
   }
 ]
+
+const EMPTY_FORM = {
+  draftResolutionNumber: '',
+  title: '',
+  author: '',
+  initialAuthor: '',
+  sender: '',
+  sessionNo: '',
+  tag: '',
+  reading: '1st reading',
+  actionOfOfficer: '',
+  dateReceived: '',
+  dateOfReading: '',
+  timeReceived: ''
+}
 
 function DraftResFormModal({
   open,
@@ -63,16 +74,7 @@ function DraftResFormModal({
   const isEdit = !!record
   const [saving, setSaving] = useState(false)
   const [file, setFile] = useState<File | null>(null)
-  const [form, setForm] = useState({
-    draftResolutionNumber: '',
-    category: 'General Resolutions',
-    title: '',
-    author: '',
-    tag: '',
-    dateReceived: '',
-    action: 'First Reading',
-    remarks: ''
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
 
   useEffect(() => {
     if (open) {
@@ -80,24 +82,19 @@ function DraftResFormModal({
         record
           ? {
               draftResolutionNumber: record.draftResolutionNumber ?? '',
-              category: record.category ?? 'General Resolutions',
               title: record.title ?? '',
               author: record.author ?? '',
+              initialAuthor: record.initialAuthor ?? '',
+              sender: record.sender ?? '',
+              sessionNo: record.sessionNo ?? '',
               tag: record.tag ?? '',
-              dateReceived: toInputDate(record.dateReceived),
-              action: record.action ?? 'First Reading',
-              remarks: record.remarks ?? ''
+              reading: record.reading ?? '1st reading',
+              actionOfOfficer: record.actionOfOfficer ?? '',
+              dateReceived: record.dateReceived ?? '',
+              dateOfReading: record.dateOfReading ?? '',
+              timeReceived: record.timeReceived ?? ''
             }
-          : {
-              draftResolutionNumber: '',
-              category: 'General Resolutions',
-              title: '',
-              author: '',
-              tag: '',
-              dateReceived: '',
-              action: 'First Reading',
-              remarks: ''
-            }
+          : EMPTY_FORM
       )
       setFile(null)
     }
@@ -106,8 +103,7 @@ function DraftResFormModal({
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit() {
     if (!form.draftResolutionNumber.trim() || !form.title.trim()) {
       toast.error('Draft number and Title are required')
       return
@@ -119,8 +115,8 @@ function DraftResFormModal({
           'laoag_draft_resolution',
           record!.id,
           { ...form },
-          'draftResolutions',
-          `DraftRes_${form.draftResolutionNumber}`,
+          'DraftResolutions',
+          `ResolutionNo._${form.draftResolutionNumber}`,
           file,
           record?.filePath ?? '',
           record?.fileType ?? ''
@@ -129,8 +125,8 @@ function DraftResFormModal({
         await addDocumentWithFile(
           'laoag_draft_resolution',
           { ...form },
-          'draftResolutions',
-          `DraftRes_${form.draftResolutionNumber}`,
+          'DraftResolutions',
+          `ResolutionNo._${form.draftResolutionNumber}`,
           file
         )
       await logActivity(
@@ -156,7 +152,7 @@ function DraftResFormModal({
           <button className="btn-secondary" onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+          <button className="btn-primary" onClick={() => handleSubmit()} disabled={saving}>
             {saving ? (
               <>
                 <Spinner size="sm" className="text-white" />
@@ -170,11 +166,8 @@ function DraftResFormModal({
       }
     >
       <form className="grid grid-cols-2 gap-4">
-        <FormField label="Draft Resolution Number" required>
+        <FormField label="Draft Resolution Number" required className="col-span-2">
           <Input value={form.draftResolutionNumber} onChange={set('draftResolutionNumber')} />
-        </FormField>
-        <FormField label="Category">
-          <Select options={CATEGORIES} value={form.category} onChange={set('category')} />
         </FormField>
         <FormField label="Title" required className="col-span-2">
           <Input value={form.title} onChange={set('title')} />
@@ -182,17 +175,44 @@ function DraftResFormModal({
         <FormField label="Author">
           <Input value={form.author} onChange={set('author')} />
         </FormField>
-        <FormField label="Tag">
+        <FormField label="Initial Author">
+          <Input value={form.initialAuthor} onChange={set('initialAuthor')} />
+        </FormField>
+        <FormField label="Sender">
+          <Input value={form.sender} onChange={set('sender')} />
+        </FormField>
+        <FormField label="Session No.">
+          <Input value={form.sessionNo} onChange={set('sessionNo')} placeholder="e.g. 95th" />
+        </FormField>
+        <FormField label="Reading">
+          <Select options={READING_OPTIONS} value={form.reading} onChange={set('reading')} />
+        </FormField>
+        <FormField label="Action of Officer">
+          <Input value={form.actionOfOfficer} onChange={set('actionOfOfficer')} />
+        </FormField>
+        <FormField label="Author / Sponsor" className="col-span-2">
           <Input value={form.tag} onChange={set('tag')} />
         </FormField>
         <FormField label="Date Received">
-          <Input type="date" value={form.dateReceived} onChange={set('dateReceived')} />
+          <Input
+            value={form.dateReceived}
+            onChange={set('dateReceived')}
+            placeholder="e.g. Friday, 14 June 2024"
+          />
         </FormField>
-        <FormField label="Action">
-          <Select options={ACTION_OPTIONS} value={form.action} onChange={set('action')} />
+        <FormField label="Time Received">
+          <Input
+            value={form.timeReceived}
+            onChange={set('timeReceived')}
+            placeholder="e.g. 10:44:54 am"
+          />
         </FormField>
-        <FormField label="Remarks" className="col-span-2">
-          <Input value={form.remarks} onChange={set('remarks')} />
+        <FormField label="Date of Reading" className="col-span-2">
+          <Input
+            value={form.dateOfReading}
+            onChange={set('dateOfReading')}
+            placeholder="e.g. Tuesday, 18 June 2024"
+          />
         </FormField>
         <div className="col-span-2">
           <FileUploadField value={file} onChange={setFile} />
@@ -232,6 +252,7 @@ export function DraftResolutionsPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
   const filtered = useMemo(() => {
     const base = items as unknown as DraftResolution[]
     const q = debouncedSearch.toLowerCase()
@@ -239,7 +260,8 @@ export function DraftResolutionsPage() {
       ? base
       : base.filter(
           (r) =>
-            r.title?.toLowerCase().includes(q) || r.draftResolutionNumber?.toLowerCase().includes(q)
+            r.title?.toLowerCase().includes(q) ||
+            r.draftResolutionNumber?.toLowerCase().includes(q)
         )
     return sortByField(result, sortField, sortDirection)
   }, [items, debouncedSearch, sortField, sortDirection])
@@ -266,8 +288,8 @@ export function DraftResolutionsPage() {
       await deleteDocumentWithFile(
         'laoag_draft_resolution',
         selected.id,
-        'draftResolutions',
-        `DraftRes_${selected.draftResolutionNumber}`
+        'DraftResolutions',
+        `ResolutionNo._${selected.draftResolutionNumber}`
       )
       await logActivity(`Deleted Draft Resolution ${selected.draftResolutionNumber}`)
       toast.success('Deleted')
@@ -322,13 +344,13 @@ export function DraftResolutionsPage() {
             </>
           }
         />
-        <div className="flex justify-end mb-4 flex-shrink-0">
+        <div className="flex justify-end mb-4 shrink-0">
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search by number or title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input-field !w-56 !py-2"
+            className="input-field w-64! py-2!"
           />
         </div>
         <div className="card flex flex-col flex-1 min-h-0">
