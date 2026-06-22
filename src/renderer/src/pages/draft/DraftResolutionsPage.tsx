@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+﻿import { useState, useMemo, useEffect } from 'react'
 import { useListData } from '../../hooks/useListData'
 import { useDebounce } from '../../hooks/useDebounce'
 import { FileEdit, Plus, RefreshCw, Pencil, Trash2, ExternalLink } from 'lucide-react'
@@ -19,7 +19,21 @@ import { FormField, Input, Select } from '../../components/ui/FormField'
 import { FileUploadField } from '../../components/ui/FileUploadField'
 import { Spinner } from '../../components/ui/Spinner'
 import type { DraftResolution } from '../../types'
-import { formatDate, getFullName, sortByField } from '../../lib/utils'
+import { formatDate, getFullName } from '../../lib/utils'
+
+const parseSessionNo = (sessionNo?: string) => {
+  const m = /^(\d+)SP_(\d+)/i.exec(sessionNo ?? '')
+  if (m) return { group: 0, primary: parseInt(m[1], 10), secondary: parseInt(m[2], 10) }
+  return { group: 1, primary: parseInt(sessionNo ?? '', 10) || 0, secondary: 0 }
+}
+
+const compareSessionNoDesc = (a?: string, b?: string) => {
+  const pa = parseSessionNo(a)
+  const pb = parseSessionNo(b)
+  if (pa.group !== pb.group) return pa.group - pb.group
+  if (pa.primary !== pb.primary) return pb.primary - pa.primary
+  return pb.secondary - pa.secondary
+}
 
 const READING_OPTIONS = [
   { value: '1st reading', label: '1st Reading' },
@@ -34,7 +48,7 @@ const columns: Column<DraftResolution>[] = [
   { key: 'sessionNo', header: 'Session No.', width: 'w-28' },
   { key: 'reading', header: 'Reading', width: 'w-28' },
   { key: 'title', header: 'Title' },
-  { key: 'tag', header: 'Author/Sponsor', width: 'w-48' },
+  { key: 'author', header: 'Author/Sponsor', width: 'w-40' },
   {
     key: 'dateReceived',
     header: 'Date Received',
@@ -47,10 +61,7 @@ const EMPTY_FORM = {
   draftResolutionNumber: '',
   title: '',
   author: '',
-  initialAuthor: '',
-  sender: '',
   sessionNo: '',
-  tag: '',
   reading: '1st reading',
   actionOfOfficer: '',
   dateReceived: '',
@@ -84,10 +95,7 @@ function DraftResFormModal({
               draftResolutionNumber: record.draftResolutionNumber ?? '',
               title: record.title ?? '',
               author: record.author ?? '',
-              initialAuthor: record.initialAuthor ?? '',
-              sender: record.sender ?? '',
               sessionNo: record.sessionNo ?? '',
-              tag: record.tag ?? '',
               reading: record.reading ?? '1st reading',
               actionOfOfficer: record.actionOfOfficer ?? '',
               dateReceived: record.dateReceived ?? '',
@@ -172,14 +180,8 @@ function DraftResFormModal({
         <FormField label="Title" required className="col-span-2">
           <Input value={form.title} onChange={set('title')} />
         </FormField>
-        <FormField label="Author">
+        <FormField label="Author / Sponsor" className="col-span-2">
           <Input value={form.author} onChange={set('author')} />
-        </FormField>
-        <FormField label="Initial Author">
-          <Input value={form.initialAuthor} onChange={set('initialAuthor')} />
-        </FormField>
-        <FormField label="Sender">
-          <Input value={form.sender} onChange={set('sender')} />
         </FormField>
         <FormField label="Session No.">
           <Input value={form.sessionNo} onChange={set('sessionNo')} placeholder="e.g. 95th" />
@@ -187,11 +189,8 @@ function DraftResFormModal({
         <FormField label="Reading">
           <Select options={READING_OPTIONS} value={form.reading} onChange={set('reading')} />
         </FormField>
-        <FormField label="Action of Officer">
+        <FormField label="Action taken by SP">
           <Input value={form.actionOfOfficer} onChange={set('actionOfOfficer')} />
-        </FormField>
-        <FormField label="Author / Sponsor" className="col-span-2">
-          <Input value={form.tag} onChange={set('tag')} />
         </FormField>
         <FormField label="Date Received">
           <Input
@@ -239,10 +238,10 @@ export function DraftResolutionsPage() {
   const user = useAuthStore((s) => s.user)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
-  const { items, loading, loadingMore, hasMore, reload, loadMore, sortField, sortDirection } =
+  const { items, loading, loadingMore, hasMore, reload, loadMore } =
     useListData<Record<string, unknown>>({
       endpoint: 'laoag_draft_resolution',
-      sortParam: 'draftResolutionNumber|desc',
+      sortParam: 'sessionNo|desc',
       dataKey: 'draftResolution',
       limit: 100,
       searchQuery: debouncedSearch
@@ -261,10 +260,11 @@ export function DraftResolutionsPage() {
       : base.filter(
           (r) =>
             r.title?.toLowerCase().includes(q) ||
-            r.draftResolutionNumber?.toLowerCase().includes(q)
+            r.draftResolutionNumber?.toLowerCase().includes(q) ||
+            r.author?.toLowerCase().includes(q)
         )
-    return sortByField(result, sortField, sortDirection)
-  }, [items, debouncedSearch, sortField, sortDirection])
+    return [...result].sort((a, b) => compareSessionNoDesc(a.sessionNo, b.sessionNo))
+  }, [items, debouncedSearch])
 
   async function logActivity(activity: string) {
     if (!user) return

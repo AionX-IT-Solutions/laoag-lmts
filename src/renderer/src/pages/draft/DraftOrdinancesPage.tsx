@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+﻿import { useState, useMemo, useEffect } from 'react'
 import { useListData } from '../../hooks/useListData'
 import { useDebounce } from '../../hooks/useDebounce'
 import { FileEdit, Plus, RefreshCw, Pencil, Trash2, ExternalLink } from 'lucide-react'
@@ -19,7 +19,21 @@ import { FormField, Input, Select } from '../../components/ui/FormField'
 import { FileUploadField } from '../../components/ui/FileUploadField'
 import { Spinner } from '../../components/ui/Spinner'
 import type { DraftOrdinance } from '../../types'
-import { getFullName, sortByField } from '../../lib/utils'
+import { getFullName } from '../../lib/utils'
+
+const parseSessionNo = (sessionNo?: string) => {
+  const m = /^(\d+)SP_(\d+)/i.exec(sessionNo ?? '')
+  if (m) return { group: 0, primary: parseInt(m[1], 10), secondary: parseInt(m[2], 10) }
+  return { group: 1, primary: parseInt(sessionNo ?? '', 10) || 0, secondary: 0 }
+}
+
+const compareSessionNoDesc = (a?: string, b?: string) => {
+  const pa = parseSessionNo(a)
+  const pb = parseSessionNo(b)
+  if (pa.group !== pb.group) return pa.group - pb.group
+  if (pa.primary !== pb.primary) return pb.primary - pa.primary
+  return pb.secondary - pa.secondary
+}
 
 const READING_OPTIONS = [
   { value: '1st reading', label: '1st Reading' },
@@ -34,15 +48,16 @@ const columns: Column<DraftOrdinance>[] = [
   { key: 'sessionNo', header: 'Session No.', width: 'w-28' },
   { key: 'reading', header: 'Reading', width: 'w-28' },
   { key: 'title', header: 'Title' },
-  { key: 'tag', header: 'Committee', width: 'w-48' },
-  { key: 'actionCommittee', header: 'Action', width: 'w-48' }
+  { key: 'author', header: 'Author/Sponsor', width: 'w-40' },
+  { key: 'tag', header: 'Committee', width: 'w-40' },
+  { key: 'actionCommittee', header: 'Action', width: 'w-40' }
 ]
 
 const EMPTY_FORM = {
   draftOrdinanceNumber: '',
   title: '',
   author: '',
-  sender: '',
+
   sessionNo: '',
   tag: '',
   reading: '1st reading',
@@ -78,7 +93,7 @@ function DraftOrdFormModal({
               draftOrdinanceNumber: record.draftOrdinanceNumber ?? '',
               title: record.title ?? '',
               author: record.author ?? '',
-              sender: record.sender ?? '',
+
               sessionNo: record.sessionNo ?? '',
               tag: record.tag ?? '',
               reading: record.reading ?? '1st reading',
@@ -165,12 +180,10 @@ function DraftOrdFormModal({
         <FormField label="Title" required className="col-span-2">
           <Input value={form.title} onChange={set('title')} />
         </FormField>
-        <FormField label="Author">
+        <FormField label="Author / Sponsor">
           <Input value={form.author} onChange={set('author')} />
         </FormField>
-        <FormField label="Sender">
-          <Input value={form.sender} onChange={set('sender')} />
-        </FormField>
+
         <FormField label="Session No.">
           <Input value={form.sessionNo} onChange={set('sessionNo')} placeholder="e.g. 13SP_18th" />
         </FormField>
@@ -225,10 +238,10 @@ export function DraftOrdinancesPage() {
   const user = useAuthStore((s) => s.user)
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
-  const { items, loading, loadingMore, hasMore, reload, loadMore, sortField, sortDirection } =
+  const { items, loading, loadingMore, hasMore, reload, loadMore } =
     useListData<Record<string, unknown>>({
       endpoint: 'laoag_draft_ordinance',
-      sortParam: 'draftOrdinanceNumber|desc',
+      sortParam: 'sessionNo|desc',
       dataKey: 'draftOrdinance',
       limit: 100,
       searchQuery: debouncedSearch
@@ -246,10 +259,12 @@ export function DraftOrdinancesPage() {
       ? base
       : base.filter(
           (r) =>
-            r.title?.toLowerCase().includes(q) || r.draftOrdinanceNumber?.toLowerCase().includes(q)
+            r.title?.toLowerCase().includes(q) ||
+            r.draftOrdinanceNumber?.toLowerCase().includes(q) ||
+            r.author?.toLowerCase().includes(q)
         )
-    return sortByField(result, sortField, sortDirection)
-  }, [items, debouncedSearch, sortField, sortDirection])
+    return [...result].sort((a, b) => compareSessionNoDesc(a.sessionNo, b.sessionNo))
+  }, [items, debouncedSearch])
 
   async function logActivity(activity: string) {
     if (!user) return

@@ -251,7 +251,6 @@ export interface DraftOrdinance {
   draftOrdinanceNumber: string
   title: string
   author: string
-  sender: string
   sessionNo: string
   tag: string
   reading: string
@@ -277,10 +276,8 @@ export interface DraftResolution {
   draftResolutionNumber: string
   title: string
   author: string
-  initialAuthor: string
-  sender: string
   sessionNo: string
-  tag: string
+  tag?: string
   reading: string
   actionOfOfficer: string
   dateReceived: string
