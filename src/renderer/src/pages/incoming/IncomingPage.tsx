@@ -201,7 +201,10 @@ export function IncomingPage() {
       (r) =>
         r.iONumber?.toLowerCase().includes(q) ||
         r.incomingDescription?.toLowerCase().includes(q) ||
-        r.tags?.toLowerCase().includes(q)
+        r.tags?.toLowerCase().includes(q) ||
+        r.dateReceived?.toLowerCase().includes(q) ||
+        r.timeReceived?.toLowerCase().includes(q) ||
+        r.remarks?.toLowerCase().includes(q)
     )
     return sortByField(result as unknown as Record<string, unknown>[], sortField, sortDirection) as unknown as Incoming[]
   }, [items, debouncedSearch, sortField, sortDirection])

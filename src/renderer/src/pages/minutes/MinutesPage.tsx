@@ -44,19 +44,35 @@ const SESSION_TYPES = [
 ]
 
 const columns: Column<Minutes>[] = [
-  { key: 'sessionNo', header: 'Session No.', width: 'w-32' },
+  { key: 'sessionNo', header: 'Session No.', width: 'w-36' },
   {
     key: 'category',
     header: 'Category',
-    width: 'w-36',
+    width: 'w-40',
     render: (r) => <Badge variant="blue">{r.category}</Badge>
   },
-  { key: 'date', header: 'Date', width: 'w-52' },
-  { key: 'time', header: 'Time', width: 'w-24' },
-  { key: 'place', header: 'Place', width: 'w-48' },
-  { key: 'agenda', header: 'Agenda' },
-  { key: 'tag', header: 'Tag', width: 'w-24' },
-  { key: 'adjournmentTime', header: 'Adj. Time', width: 'w-24' }
+  { key: 'date', header: 'Date', width: 'w-56' },
+  { key: 'time', header: 'Time', width: 'w-28' },
+  { key: 'place', header: 'Place', width: 'w-64' },
+  {
+    key: 'present',
+    header: 'Present',
+    width: 'w-48',
+    render: (r) => {
+      const val = Array.isArray(r.present) ? r.present.join(', ') : ''
+      return <span className="text-xs truncate block" title={val}>{val}</span>
+    }
+  },
+  {
+    key: 'absent',
+    header: 'Absent',
+    width: 'w-48',
+    render: (r) => {
+      const val = Array.isArray(r.absent) ? r.absent.join(', ') : ''
+      return <span className="text-xs truncate block" title={val}>{val}</span>
+    }
+  },
+  { key: 'agenda', header: 'Agenda' }
 ]
 
 const EMPTY_FORM = {
@@ -121,8 +137,7 @@ function MinutesFormModal({
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit() {
     if (!form.sessionNo.trim()) {
       toast.error('Session number is required')
       return
@@ -196,7 +211,7 @@ function MinutesFormModal({
           <button className="btn-secondary" onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+          <button className="btn-primary" onClick={() => handleSubmit()} disabled={saving}>
             {saving ? (
               <>
                 <Spinner size="sm" className="text-white" />

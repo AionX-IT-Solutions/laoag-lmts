@@ -226,7 +226,10 @@ export function OtherMattersPage() {
       (r) =>
         r.title?.toLowerCase().includes(q) ||
         r.otherMattersNo?.toLowerCase().includes(q) ||
-        r.author?.toLowerCase().includes(q)
+        r.author?.toLowerCase().includes(q) ||
+        r.sessionNo?.toLowerCase().includes(q) ||
+        r.status?.toLowerCase().includes(q) ||
+        r.dateReceived?.toLowerCase().includes(q)
     )
     return sortByField(result as unknown as Record<string, unknown>[], sortField, sortDirection) as unknown as OtherMatter[]
   }, [items, debouncedSearch, sortField, sortDirection])

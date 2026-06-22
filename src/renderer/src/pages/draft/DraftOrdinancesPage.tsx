@@ -49,7 +49,7 @@ const columns: Column<DraftOrdinance>[] = [
   { key: 'reading', header: 'Reading', width: 'w-28' },
   { key: 'title', header: 'Title' },
   { key: 'author', header: 'Author/Sponsor', width: 'w-40' },
-  { key: 'tag', header: 'Committee', width: 'w-40' },
+  { key: 'tag', header: 'Tag', width: 'w-40' },
   { key: 'actionCommittee', header: 'Action', width: 'w-40' }
 ]
 
@@ -190,7 +190,7 @@ function DraftOrdFormModal({
         <FormField label="Reading">
           <Select options={READING_OPTIONS} value={form.reading} onChange={set('reading')} />
         </FormField>
-        <FormField label="Committee / Tag" className="col-span-2">
+        <FormField label="Tag" className="col-span-2">
           <Input value={form.tag} onChange={set('tag')} />
         </FormField>
         <FormField label="Action (Committee)" className="col-span-2">
@@ -261,7 +261,11 @@ export function DraftOrdinancesPage() {
           (r) =>
             r.title?.toLowerCase().includes(q) ||
             r.draftOrdinanceNumber?.toLowerCase().includes(q) ||
-            r.author?.toLowerCase().includes(q)
+            r.author?.toLowerCase().includes(q) ||
+            r.sessionNo?.toLowerCase().includes(q) ||
+            r.reading?.toLowerCase().includes(q) ||
+            r.tag?.toLowerCase().includes(q) ||
+            r.actionCommittee?.toLowerCase().includes(q)
         )
     return [...result].sort((a, b) => compareSessionNoDesc(a.sessionNo, b.sessionNo))
   }, [items, debouncedSearch])
@@ -316,6 +320,7 @@ export function DraftOrdinancesPage() {
                 <RefreshCw size={15} />
                 Refresh
               </button>
+
               {selected && (
                 <>
                   {selected.filePath && (

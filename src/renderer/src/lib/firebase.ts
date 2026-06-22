@@ -234,6 +234,25 @@ export async function deleteDocumentWithFile(
   }
 }
 
+export async function bulkCopyField(
+  collectionName: string,
+  sourceField: string,
+  targetField: string
+): Promise<number> {
+  await ensureAuth()
+  const snap = await getDocs(collection(db, collectionName))
+  const docs = snap.docs.filter((d) => d.id !== '--count--')
+  for (let i = 0; i < docs.length; i += 499) {
+    const batch = writeBatch(db)
+    for (const d of docs.slice(i, i + 499)) {
+      const val = (d.data()[sourceField] as string) ?? ''
+      batch.update(d.ref, { [targetField]: val })
+    }
+    await batch.commit()
+  }
+  return docs.length
+}
+
 export async function addDocumentWithCount(
   collectionName: string,
   data: Record<string, unknown>

@@ -218,7 +218,13 @@ export function JudicialPage() {
     const base = items as unknown as Judicial[]
     const q = debouncedSearch.toLowerCase()
     const result = !debouncedSearch.trim() ? base : base.filter(
-      (r) => r.title?.toLowerCase().includes(q) || r.caseNumber?.toLowerCase().includes(q)
+      (r) =>
+        r.title?.toLowerCase().includes(q) ||
+        r.caseNumber?.toLowerCase().includes(q) ||
+        r.petitioner?.toLowerCase().includes(q) ||
+        r.respondent?.toLowerCase().includes(q) ||
+        r.action?.toLowerCase().includes(q) ||
+        r.date?.toLowerCase().includes(q)
     )
     return sortByField(result as unknown as Record<string, unknown>[], sortField, sortDirection) as unknown as Judicial[]
   }, [items, debouncedSearch, sortField, sortDirection])

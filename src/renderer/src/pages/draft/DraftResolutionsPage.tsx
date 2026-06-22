@@ -49,6 +49,7 @@ const columns: Column<DraftResolution>[] = [
   { key: 'reading', header: 'Reading', width: 'w-28' },
   { key: 'title', header: 'Title' },
   { key: 'author', header: 'Author/Sponsor', width: 'w-40' },
+  { key: 'tag', header: 'Tag', width: 'w-40' },
   {
     key: 'dateReceived',
     header: 'Date Received',
@@ -61,6 +62,7 @@ const EMPTY_FORM = {
   draftResolutionNumber: '',
   title: '',
   author: '',
+  tag: '',
   sessionNo: '',
   reading: '1st reading',
   actionOfOfficer: '',
@@ -95,6 +97,7 @@ function DraftResFormModal({
               draftResolutionNumber: record.draftResolutionNumber ?? '',
               title: record.title ?? '',
               author: record.author ?? '',
+              tag: record.tag ?? '',
               sessionNo: record.sessionNo ?? '',
               reading: record.reading ?? '1st reading',
               actionOfOfficer: record.actionOfOfficer ?? '',
@@ -183,6 +186,9 @@ function DraftResFormModal({
         <FormField label="Author / Sponsor" className="col-span-2">
           <Input value={form.author} onChange={set('author')} />
         </FormField>
+        <FormField label="Tag" className="col-span-2">
+          <Input value={form.tag} onChange={set('tag')} />
+        </FormField>
         <FormField label="Session No.">
           <Input value={form.sessionNo} onChange={set('sessionNo')} placeholder="e.g. 95th" />
         </FormField>
@@ -261,7 +267,11 @@ export function DraftResolutionsPage() {
           (r) =>
             r.title?.toLowerCase().includes(q) ||
             r.draftResolutionNumber?.toLowerCase().includes(q) ||
-            r.author?.toLowerCase().includes(q)
+            r.author?.toLowerCase().includes(q) ||
+            r.sessionNo?.toLowerCase().includes(q) ||
+            r.reading?.toLowerCase().includes(q) ||
+            r.tag?.toLowerCase().includes(q) ||
+            r.dateReceived?.toLowerCase().includes(q)
         )
     return [...result].sort((a, b) => compareSessionNoDesc(a.sessionNo, b.sessionNo))
   }, [items, debouncedSearch])
@@ -316,6 +326,7 @@ export function DraftResolutionsPage() {
                 <RefreshCw size={15} />
                 Refresh
               </button>
+
               {selected && (
                 <>
                   {selected.filePath && (
