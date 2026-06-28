@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-export const API_BASE = 'https://asia-southeast1-laoaglmts.cloudfunctions.net/api'
+export const API_BASE =
+  import.meta.env.VITE_API_BASE ?? 'https://asia-southeast1-laoaglmts.cloudfunctions.net/api'
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -30,9 +31,13 @@ api.interceptors.response.use(
 
 // Firebase config
 export const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyBcrCxQEfKHaUKhVoRGDfZ2tSur3roTw0w',
-  authDomain: 'laoaglmts.firebaseapp.com',
-  storageBucket: 'laoaglmts.appspot.com',
-  serviceEmail: 'adolfotristanjames@gmail.com',
-  servicePassword: 'laoaglmts'
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  serviceEmail: import.meta.env.VITE_FIREBASE_SERVICE_EMAIL,
+  servicePassword: import.meta.env.VITE_FIREBASE_SERVICE_PASSWORD
 }
