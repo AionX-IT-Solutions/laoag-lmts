@@ -104,7 +104,7 @@ function OtherMatterFormModal({
     try {
       if (isEdit)
         await updateDocumentWithFile(
-          'matters',
+          'laoag_other_matters',
           record!.id,
           { ...form },
           'otherMatters',
@@ -115,7 +115,7 @@ function OtherMatterFormModal({
         )
       else
         await addDocumentWithFile(
-          'matters',
+          'laoag_other_matters',
           { ...form },
           'otherMatters',
           `Matter_${form.otherMattersNo}`,
@@ -254,7 +254,7 @@ export function OtherMattersPage() {
     setDeleting(true)
     try {
       await deleteDocumentWithFile(
-        'matters',
+        'laoag_other_matters',
         selected.id,
         'otherMatters',
         `OtherMattersNo._${selected.otherMattersNo}`

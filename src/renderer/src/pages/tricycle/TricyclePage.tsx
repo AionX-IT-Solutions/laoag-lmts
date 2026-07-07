@@ -17,6 +17,7 @@ import { TricycleFormModal } from './TricycleFormModal'
 const columns: Column<Tricycle>[] = [
   { key: 'name', header: 'Applicant Name', width: 'w-40' },
   { key: 'franchiseNo', header: 'Franchise No.', width: 'w-28' },
+  { key: 'ordinanceNumber', header: 'Ordinance No.', width: 'w-28' },
   { key: 'plateNo', header: 'Plate No.', width: 'w-24' },
   { key: 'make', header: 'Make/Model', width: 'w-28' },
   { key: 'motorNo', header: 'Motor No.', width: 'w-28' },

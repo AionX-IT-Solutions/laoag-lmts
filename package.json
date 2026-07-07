@@ -1,9 +1,9 @@
 {
   "name": "lmts-electron",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "AionX IT Solutions",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",

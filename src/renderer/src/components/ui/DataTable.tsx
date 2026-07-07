@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -8,6 +8,28 @@ export interface Column<T> {
   render?: (row: T) => React.ReactNode
   width?: string
   align?: 'left' | 'center' | 'right'
+}
+
+// Maps the Tailwind width classes used across table column configs to a px value,
+// used as each column's initial (user-resizable) width.
+const WIDTH_CLASS_PX: Record<string, number> = {
+  'w-16': 64,
+  'w-20': 80,
+  'w-24': 96,
+  'w-28': 112,
+  'w-32': 128,
+  'w-36': 144,
+  'w-40': 160,
+  'w-44': 176,
+  'w-48': 192,
+  'w-56': 224,
+  'w-64': 256
+}
+
+const MIN_COL_WIDTH = 60
+
+function initialColumnWidth(width?: string): number {
+  return (width && WIDTH_CLASS_PX[width]) || 240
 }
 
 interface DataTableProps<T extends { id?: string }> {
@@ -36,10 +58,56 @@ export function DataTable<T extends { id?: string }>({
   const containerRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingMoreRef = useRef(loadingMore)
+  const colRefs = useRef<(HTMLTableColElement | null)[]>([])
+  const [colWidths, setColWidths] = useState<number[]>(() =>
+    columns.map((c) => initialColumnWidth(c.width))
+  )
+  const [resizingIndex, setResizingIndex] = useState<number | null>(null)
 
   useEffect(() => {
     loadingMoreRef.current = loadingMore
   })
+
+  // Keep colWidths in sync if the column set changes shape (e.g. switching pages)
+  useEffect(() => {
+    setColWidths((prev) => {
+      if (prev.length === columns.length) return prev
+      return columns.map((c, i) => prev[i] ?? initialColumnWidth(c.width))
+    })
+  }, [columns])
+
+  function startResize(e: React.MouseEvent, index: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startWidth = colWidths[index]
+    const colEl = colRefs.current[index]
+    setResizingIndex(index)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    function onMove(ev: MouseEvent) {
+      const newWidth = Math.max(MIN_COL_WIDTH, startWidth + (ev.clientX - startX))
+      if (colEl) colEl.style.width = `${newWidth}px`
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      setResizingIndex(null)
+      if (colEl) {
+        const finalWidth = parseInt(colEl.style.width, 10)
+        setColWidths((prev) => {
+          const next = [...prev]
+          next[index] = finalWidth
+          return next
+        })
+      }
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -87,7 +155,18 @@ export function DataTable<T extends { id?: string }>({
 
   return (
     <div ref={containerRef} className="scrollbar-thin" style={{ overflow: 'auto', flex: 1 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
+        <colgroup>
+          {columns.map((_, i) => (
+            <col
+              key={i}
+              ref={(el) => {
+                colRefs.current[i] = el
+              }}
+              style={{ width: colWidths[i] }}
+            />
+          ))}
+        </colgroup>
         <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
           <tr
             style={{ background: 'var(--c-thead-bg)', borderBottom: '2px solid var(--c-divider)' }}
@@ -95,8 +174,8 @@ export function DataTable<T extends { id?: string }>({
             {columns.map((col, i) => (
               <th
                 key={String(col.key)}
-                className={cn(col.width)}
                 style={{
+                  position: 'relative',
                   padding: '11px 16px',
                   textAlign:
                     col.align === 'right' ? 'right' : col.align === 'center' ? 'center' : 'left',
@@ -106,10 +185,28 @@ export function DataTable<T extends { id?: string }>({
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                   borderRight: i < columns.length - 1 ? '1px solid var(--c-divider)' : 'none'
                 }}
               >
                 {col.header}
+                {i < columns.length - 1 && (
+                  <div
+                    onMouseDown={(e) => startResize(e, i)}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: -2,
+                      bottom: 0,
+                      width: 5,
+                      cursor: 'col-resize',
+                      zIndex: 11,
+                      background:
+                        resizingIndex === i ? 'var(--c-accent, #6b7280)' : 'transparent'
+                    }}
+                  />
+                )}
               </th>
             ))}
           </tr>
@@ -184,7 +281,6 @@ export function DataTable<T extends { id?: string }>({
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
-                        maxWidth: 240,
                         borderRight:
                           ci < columns.length - 1 ? '1px solid var(--c-divider)' : 'none',
                         fontSize: 13

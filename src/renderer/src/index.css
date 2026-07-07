@@ -54,6 +54,17 @@
     --c-btn-sec-text: #94a3b8;
     --c-btn-sec-hover-bg: rgba(255, 255, 255, 0.1);
     --c-btn-sec-hover-text: #e2e8f0;
+
+    /* ── Login brand panel (fixed — same in both themes) ────── */
+    --c-login-bg-start: #0b1330;
+    --c-login-bg-mid: #121f4a;
+    --c-login-bg-end: #0a1226;
+    --c-login-text: #f5f7ff;
+    --c-login-muted: rgba(245, 247, 255, 0.68);
+    --c-login-chip-bg: rgba(255, 255, 255, 0.12);
+    --c-login-chip-border: rgba(255, 255, 255, 0.16);
+    --c-login-ring: rgba(255, 255, 255, 0.08);
+    --c-login-shadow: rgba(0, 0, 0, 0.35);
   }
 
   /* ── Light theme ────────────────────────────────────────────── */
@@ -248,6 +259,9 @@
   .input-field option {
     background: var(--c-surface-solid);
     color: var(--c-text-1);
+  }
+  .input-icon-wrap:focus-within .input-icon {
+    color: #3b82f6;
   }
 
   /* ── Label ─────────────────────────────────────────────────── */

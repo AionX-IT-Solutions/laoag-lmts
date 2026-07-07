@@ -94,6 +94,7 @@ export interface Tricycle {
   chassisNo: string
   plateNo: string
   franchiseNo: string
+  ordinanceNumber: string
   expiration: string
   dateReceived: string
   timeReceived: string

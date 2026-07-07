@@ -5,11 +5,11 @@ import icon from '../../resources/icon.png?asset'
 
 function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
-    width: 600,
-    height: 600,
-    minWidth: 600,
+    width: 1280,
+    height: 800,
+    minWidth: 900,
     minHeight: 600,
-    resizable: false,
+    resizable: true,
     center: true,
     show: false,
     autoHideMenuBar: true,
@@ -38,17 +38,11 @@ function createWindow(): BrowserWindow {
   })
 
   ipcMain.on('window-maximize', () => {
-    mainWindow.setResizable(true)
-    mainWindow.setMinimumSize(1100, 650)
     mainWindow.maximize()
   })
 
   ipcMain.on('window-restore-login', () => {
     mainWindow.unmaximize()
-    mainWindow.setResizable(false)
-    mainWindow.setMinimumSize(600, 600)
-    mainWindow.setSize(600, 600)
-    mainWindow.center()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

@@ -35,6 +35,9 @@ const compareSessionNoDesc = (a?: string, b?: string) => {
   return pb.secondary - pa.secondary
 }
 
+const compareDraftNoDesc = (a?: string, b?: string) =>
+  (b ?? '').localeCompare(a ?? '', undefined, { numeric: true, sensitivity: 'base' })
+
 const READING_OPTIONS = [
   { value: '1st reading', label: '1st Reading' },
   { value: '2nd reading', label: '2nd Reading' },
@@ -267,7 +270,11 @@ export function DraftOrdinancesPage() {
             r.tag?.toLowerCase().includes(q) ||
             r.actionCommittee?.toLowerCase().includes(q)
         )
-    return [...result].sort((a, b) => compareSessionNoDesc(a.sessionNo, b.sessionNo))
+    return [...result].sort((a, b) => {
+      const sessionCmp = compareSessionNoDesc(a.sessionNo, b.sessionNo)
+      if (sessionCmp !== 0) return sessionCmp
+      return compareDraftNoDesc(a.draftOrdinanceNumber, b.draftOrdinanceNumber)
+    })
   }, [items, debouncedSearch])
 
   async function logActivity(activity: string) {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Lock, User, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Building2, User, Lock, AlertCircle } from 'lucide-react'
 import { queryDocuments, auth, ensureAuth } from '../lib/firebase'
 import { useAuthStore } from '../store/authStore'
 import { useUIStore } from '../store/uiStore'
@@ -12,6 +12,13 @@ import bcrypt from 'bcryptjs'
 
 const APP_VERSION = 'v2.0.0'
 
+const FEATURES = [
+  'Ordinance & Resolution Management',
+  'Committee Reports & Reviews',
+  'Barangay & Tricycle Franchise Records',
+  'Real-Time Legislative Tracking'
+]
+
 export function LoginPage() {
   const navigate = useNavigate()
   const setUser = useAuthStore((s) => s.setUser)
@@ -21,11 +28,13 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleLogin(e: { preventDefault(): void }) {
     e.preventDefault()
+    setError(null)
     if (!username.trim() || !password.trim()) {
-      toast.error('Please enter your username and password')
+      setError('Please enter your username and password')
       return
     }
     setLoading(true)
@@ -37,13 +46,13 @@ export function LoginPage() {
         username.trim()
       )
       if (!users.length) {
-        toast.error('Username not found')
+        setError('Username not found')
         return
       }
       const account = users[0]
       const match = await bcrypt.compare(password, String(account.password))
       if (!match) {
-        toast.error('Incorrect password')
+        setError('Incorrect password')
         return
       }
       await ensureAuth()
@@ -62,7 +71,7 @@ export function LoginPage() {
       navigate('/dashboard')
     } catch (err: unknown) {
       console.error('[Login]', err)
-      toast.error('Login failed. Please check your connection.')
+      setError('Login failed. Please check your connection.')
     } finally {
       setLoading(false)
     }
@@ -70,169 +79,17 @@ export function LoginPage() {
 
   const isDark = theme === 'dark'
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 12px 10px 34px',
-    fontSize: 13,
-    borderRadius: 10,
-    outline: 'none',
-    transition: 'all 0.2s',
-    background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.035)',
-    border: isDark ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(0,0,0,0.1)',
-    color: isDark ? '#e2e8f0' : '#0f172a'
-  }
-  const iconStyle: React.CSSProperties = {
-    position: 'absolute',
-    left: 11,
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: isDark ? '#334155' : '#94a3b8',
-    pointerEvents: 'none'
-  }
-
   return (
     <div
+      className="animate-fade-in"
       style={{
         height: '100vh',
         width: '100vw',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        position: 'relative'
       }}
     >
-      {/* ── Background ────────────────────────────────────────── */}
-
-      {/* Base gradient */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: isDark
-            ? 'linear-gradient(145deg, #03060e 0%, #060c1c 35%, #080f22 65%, #050810 100%)'
-            : 'linear-gradient(145deg, #dce8ff 0%, #e8e4ff 40%, #f0ebff 70%, #e4eeff 100%)'
-        }}
-      />
-
-      {/* Large soft aurora blobs */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background: isDark
-            ? `
-            radial-gradient(ellipse 110% 70% at 15% 5%,  rgba(29,78,216,0.22)  0%, transparent 55%),
-            radial-gradient(ellipse 80%  90% at 90% 95%, rgba(79,70,229,0.18)  0%, transparent 55%),
-            radial-gradient(ellipse 60%  60% at 70% 20%, rgba(16,185,129,0.06) 0%, transparent 50%)
-          `
-            : `
-            radial-gradient(ellipse 110% 70% at 10% 0%,  rgba(59,130,246,0.28)  0%, transparent 55%),
-            radial-gradient(ellipse 80%  90% at 90% 100%,rgba(139,92,246,0.22)  0%, transparent 55%),
-            radial-gradient(ellipse 50%  50% at 55% 40%, rgba(16,185,129,0.1)  0%, transparent 50%)
-          `
-        }}
-      />
-
-      {/* Diagonal stripe texture */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          backgroundImage: isDark
-            ? `repeating-linear-gradient(-55deg, transparent 0px, transparent 22px, rgba(99,102,241,0.03) 22px, rgba(99,102,241,0.03) 23px)`
-            : `repeating-linear-gradient(-55deg, transparent 0px, transparent 22px, rgba(99,102,241,0.05) 22px, rgba(99,102,241,0.05) 23px)`
-        }}
-      />
-
-      {/* Large decorative circle rings */}
-      <div
-        className="animate-float"
-        style={{
-          position: 'absolute',
-          top: '-10%',
-          left: '-8%',
-          width: 320,
-          height: 320,
-          borderRadius: '50%',
-          pointerEvents: 'none',
-          border: isDark ? '1px solid rgba(59,130,246,0.08)' : '1px solid rgba(59,130,246,0.14)',
-          boxShadow: isDark
-            ? 'inset 0 0 80px rgba(59,130,246,0.06)'
-            : 'inset 0 0 80px rgba(59,130,246,0.08)'
-        }}
-      />
-      <div
-        className="animate-float"
-        style={{
-          position: 'absolute',
-          top: '-5%',
-          left: '-3%',
-          width: 200,
-          height: 200,
-          borderRadius: '50%',
-          pointerEvents: 'none',
-          animationDelay: '0.5s',
-          border: isDark ? '1px solid rgba(99,102,241,0.06)' : '1px solid rgba(99,102,241,0.1)'
-        }}
-      />
-      <div
-        className="animate-float"
-        style={{
-          position: 'absolute',
-          bottom: '-12%',
-          right: '-6%',
-          width: 360,
-          height: 360,
-          borderRadius: '50%',
-          pointerEvents: 'none',
-          animationDelay: '1.5s',
-          border: isDark ? '1px solid rgba(79,70,229,0.07)' : '1px solid rgba(139,92,246,0.12)',
-          boxShadow: isDark
-            ? 'inset 0 0 90px rgba(79,70,229,0.05)'
-            : 'inset 0 0 90px rgba(139,92,246,0.07)'
-        }}
-      />
-      <div
-        className="animate-float"
-        style={{
-          position: 'absolute',
-          bottom: '-6%',
-          right: '-1%',
-          width: 220,
-          height: 220,
-          borderRadius: '50%',
-          pointerEvents: 'none',
-          animationDelay: '2s',
-          border: isDark ? '1px solid rgba(99,102,241,0.05)' : '1px solid rgba(99,102,241,0.09)'
-        }}
-      />
-
-      {/* Dot grid overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          backgroundImage: `radial-gradient(circle, ${isDark ? 'rgba(255,255,255,0.022)' : 'rgba(0,0,0,0.04)'} 1px, transparent 1px)`,
-          backgroundSize: '28px 28px'
-        }}
-      />
-
-      {/* Vignette edges */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background: isDark
-            ? 'radial-gradient(ellipse 90% 90% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)'
-            : 'radial-gradient(ellipse 90% 90% at 50% 50%, transparent 55%, rgba(59,100,200,0.12) 100%)'
-        }}
-      />
-
       {/* Theme toggle */}
       <button
         onClick={toggleTheme}
@@ -241,13 +98,13 @@ export function LoginPage() {
           position: 'absolute',
           top: 14,
           right: 14,
-          zIndex: 10,
+          zIndex: 20,
           width: 32,
           height: 32,
           borderRadius: 9,
           cursor: 'pointer',
-          background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.65)',
-          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+          background: 'var(--c-btn-sec-bg)',
+          border: '1px solid var(--c-btn-sec-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -259,275 +116,466 @@ export function LoginPage() {
         {isDark ? '☀️' : '🌙'}
       </button>
 
-      {/* ── Card ──────────────────────────────────────────────── */}
+      {/* ── Left brand panel ─────────────────────────────────── */}
       <div
-        className="animate-scale-in"
         style={{
+          flex: 1,
           position: 'relative',
-          zIndex: 1,
-          width: '100%',
-          maxWidth: 352,
-          borderRadius: 20,
           overflow: 'hidden',
-          background: isDark ? 'rgba(7,11,24,0.8)' : 'rgba(255,255,255,0.86)',
-          border: isDark ? '1px solid rgba(99,102,241,0.15)' : '1px solid rgba(255,255,255,0.9)',
-          boxShadow: isDark
-            ? '0 20px 56px rgba(0,0,0,0.7), 0 0 0 1px rgba(99,102,241,0.07), inset 0 1px 0 rgba(255,255,255,0.04)'
-            : '0 16px 48px rgba(59,100,200,0.18), 0 4px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1)',
-          backdropFilter: 'blur(36px)'
+          background:
+            'linear-gradient(160deg, var(--c-login-bg-start) 0%, var(--c-login-bg-mid) 45%, var(--c-login-bg-end) 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '32px 20px'
         }}
       >
-        {/* Accent bar — clipped perfectly by overflow:hidden */}
+        {/* Floating orbs */}
         <div
+          className="animate-float"
           style={{
-            height: 3,
-            background: 'linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)'
+            position: 'absolute',
+            top: -60,
+            left: -60,
+            width: 200,
+            height: 200,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)',
+            pointerEvents: 'none'
+          }}
+        />
+        <div
+          className="animate-float"
+          style={{
+            position: 'absolute',
+            bottom: -70,
+            right: -50,
+            width: 220,
+            height: 220,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(124,58,237,0.28) 0%, transparent 70%)',
+            pointerEvents: 'none',
+            animationDelay: '1.2s'
           }}
         />
 
-        <div style={{ padding: '26px 28px 22px' }}>
-          {/* Logo + title */}
-          <div style={{ textAlign: 'center', marginBottom: 22 }}>
-            <img
-              src={lmtsLogo}
-              alt="Laoag City SP"
-              style={{
-                width: 72,
-                height: 72,
-                objectFit: 'contain',
-                margin: '0 auto 11px',
-                display: 'block',
-                filter: isDark
-                  ? 'drop-shadow(0 4px 12px rgba(59,130,246,0.4))'
-                  : 'drop-shadow(0 4px 12px rgba(59,130,246,0.25))'
-              }}
-            />
+        {/* Dot grid overlay */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            backgroundImage: 'radial-gradient(circle, var(--c-login-ring) 1px, transparent 1px)',
+            backgroundSize: '22px 22px'
+          }}
+        />
 
-            <h1
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                letterSpacing: '-0.3px',
-                background: 'linear-gradient(135deg, #3b82f6, #7c3aed)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                marginBottom: 3
-              }}
-            >
-              LMTS
-            </h1>
-            <p style={{ fontSize: 11, color: isDark ? '#475569' : '#64748b' }}>
-              Legislative Management & Tracking System
-            </p>
-            <p style={{ fontSize: 10.5, color: isDark ? '#2a3a52' : '#94a3b8', marginTop: 2 }}>
-              Laoag City Sangguniang Panlungsod
-            </p>
-          </div>
+        {/* Ring decorations */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: -40,
+            width: 120,
+            height: 120,
+            borderRadius: '50%',
+            border: '1px solid var(--c-login-ring)',
+            pointerEvents: 'none'
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            bottom: 30,
+            left: -30,
+            width: 100,
+            height: 100,
+            borderRadius: '50%',
+            border: '1px solid var(--c-login-ring)',
+            pointerEvents: 'none'
+          }}
+        />
 
-          {/* Divider */}
+        {/* Content */}
+        <div className="animate-slide-up" style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
           <div
             style={{
-              height: 1,
-              marginBottom: 18,
-              background: isDark
-                ? 'linear-gradient(90deg, transparent, rgba(99,102,241,0.2), transparent)'
-                : 'linear-gradient(90deg, transparent, rgba(99,102,241,0.12), transparent)'
-            }}
-          />
-
-          {/* Form */}
-          <form
-            onSubmit={handleLogin}
-            style={{ display: 'flex', flexDirection: 'column', gap: 13 }}
-          >
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.09em',
-                  color: isDark ? '#2d3f5c' : '#94a3b8',
-                  marginBottom: 6
-                }}
-              >
-                Username
-              </label>
-              <div style={{ position: 'relative' }}>
-                <User size={13} style={iconStyle} />
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
-                  disabled={loading}
-                  autoFocus
-                  style={inputStyle}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#3b82f6'
-                    e.target.style.background = isDark
-                      ? 'rgba(59,130,246,0.07)'
-                      : 'rgba(59,130,246,0.05)'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.12)'
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = isDark
-                      ? 'rgba(255,255,255,0.09)'
-                      : 'rgba(0,0,0,0.1)'
-                    e.target.style.background = isDark
-                      ? 'rgba(255,255,255,0.05)'
-                      : 'rgba(0,0,0,0.035)'
-                    e.target.style.boxShadow = 'none'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: 9.5,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.09em',
-                  color: isDark ? '#2d3f5c' : '#94a3b8',
-                  marginBottom: 6
-                }}
-              >
-                Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={13} style={iconStyle} />
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  disabled={loading}
-                  style={{ ...inputStyle, paddingRight: 38 }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#3b82f6'
-                    e.target.style.background = isDark
-                      ? 'rgba(59,130,246,0.07)'
-                      : 'rgba(59,130,246,0.05)'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.12)'
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = isDark
-                      ? 'rgba(255,255,255,0.09)'
-                      : 'rgba(0,0,0,0.1)'
-                    e.target.style.background = isDark
-                      ? 'rgba(255,255,255,0.05)'
-                      : 'rgba(0,0,0,0.035)'
-                    e.target.style.boxShadow = 'none'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  style={{
-                    position: 'absolute',
-                    right: 9,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: isDark ? '#334155' : '#94a3b8',
-                    padding: 3,
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  {showPw ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '11px 0',
-                marginTop: 2,
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#fff',
-                borderRadius: 11,
-                border: 'none',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                background: loading
-                  ? 'rgba(59,130,246,0.4)'
-                  : 'linear-gradient(135deg, #3b82f6 0%, #7c3aed 100%)',
-                boxShadow: loading ? 'none' : '0 5px 18px rgba(59,130,246,0.4)',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 7
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'
-                  ;(e.currentTarget as HTMLButtonElement).style.boxShadow =
-                    '0 9px 24px rgba(59,130,246,0.52)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) {
-                  ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
-                  ;(e.currentTarget as HTMLButtonElement).style.boxShadow =
-                    '0 5px 18px rgba(59,130,246,0.4)'
-                }
-              }}
-            >
-              {loading ? (
-                <>
-                  <Spinner size="sm" className="text-white" />
-                  Signing in…
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight size={14} />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <div
-            style={{
-              marginTop: 18,
-              paddingTop: 14,
-              borderTop: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)',
+              width: 96,
+              height: 96,
+              borderRadius: 22,
+              margin: '0 auto 16px',
+              background: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(14px)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'center',
+              boxShadow: '0 10px 38px var(--c-login-shadow)'
             }}
           >
-            <p style={{ fontSize: 9.5, color: isDark ? '#1a2840' : '#cbd5e1' }}>
-              © {new Date().getFullYear()} Laoag City Gov&apos;t
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <img src={aionxLogo} alt="AionX" style={{ width: 12, height: 12, opacity: 0.45 }} />
-              <span style={{ fontSize: 9.5, color: isDark ? '#1a2840' : '#cbd5e1' }}>
-                AionX IT Solutions
+            <img
+              src={lmtsLogo}
+              alt="LMTS"
+              style={{ width: 56, height: 56, objectFit: 'contain' }}
+              draggable={false}
+            />
+          </div>
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              marginBottom: 10,
+              padding: '3px 10px',
+              borderRadius: 999,
+              background: 'var(--c-login-chip-bg)',
+              border: '1px solid var(--c-login-chip-border)'
+            }}
+          >
+            <Building2 size={10} color="rgba(255,255,255,0.75)" />
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.8)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase'
+              }}
+            >
+              Laoag City Sangguniang Panlungsod
+            </span>
+          </div>
+
+          <h1
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: 'var(--c-login-text)',
+              letterSpacing: '-0.5px',
+              lineHeight: 1,
+              marginBottom: 6,
+              textShadow: '0 2px 20px rgba(59,130,246,0.4)'
+            }}
+          >
+            LMTS
+          </h1>
+
+          <p
+            style={{
+              fontSize: 11,
+              color: 'var(--c-login-muted)',
+              lineHeight: 1.5,
+              maxWidth: 190,
+              margin: '0 auto 24px'
+            }}
+          >
+            Legislative Management &amp; Tracking System
+          </p>
+
+          {FEATURES.map((label) => (
+            <div
+              key={label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '6px 12px',
+                borderRadius: 8,
+                marginBottom: 6,
+                background: 'var(--c-login-chip-bg)',
+                border: '1px solid var(--c-login-chip-border)'
+              }}
+            >
+              <div
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: '#3b82f6',
+                  flexShrink: 0
+                }}
+              />
+              <span style={{ fontSize: 10.5, color: 'var(--c-login-muted)', fontWeight: 500 }}>
+                {label}
               </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom branding */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 5
+          }}
+        >
+          <img src={aionxLogo} alt="AionX" style={{ width: 16, height: 16, opacity: 0.8 }} draggable={false} />
+          <span style={{ fontSize: 11, color: 'var(--c-login-muted)' }}>AionX IT Solutions</span>
+        </div>
+      </div>
+
+      {/* ── Right form panel ─────────────────────────────────── */}
+      <div
+        style={{
+          flex: 1,
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '32px 28px',
+          background: 'var(--c-bg)',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Ambient blobs */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: '-20%',
+            right: '-20%',
+            width: 300,
+            height: 300,
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)'
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            bottom: '-10%',
+            left: '-10%',
+            width: 200,
+            height: 200,
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            background: 'radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 70%)'
+          }}
+        />
+
+        <div className="animate-scale-in" style={{ width: '100%', maxWidth: 400, position: 'relative', zIndex: 1 }}>
+          <div
+            style={{
+              background: 'var(--c-surface-solid)',
+              border: '1px solid var(--c-border)',
+              borderRadius: 20,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.16), 0 4px 20px rgba(0,0,0,0.08)',
+              padding: '36px 36px 32px'
+            }}
+          >
+            {/* Heading */}
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#3b82f6',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                marginBottom: 8
+              }}
+            >
+              Welcome back
+            </p>
+            <h2
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: 'var(--c-text-1)',
+                marginBottom: 6
+              }}
+            >
+              Sign in to your account
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--c-text-2)', marginBottom: 28 }}>
+              Enter your credentials to access the dashboard
+            </p>
+
+            {/* Form */}
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'var(--c-text-2)',
+                    letterSpacing: '0.02em',
+                    marginBottom: 6
+                  }}
+                >
+                  Username
+                </label>
+                <div className="input-icon-wrap" style={{ position: 'relative' }}>
+                  <span
+                    className="input-icon"
+                    style={{
+                      position: 'absolute',
+                      left: 11,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      pointerEvents: 'none',
+                      color: 'var(--c-text-3)',
+                      transition: 'color 0.15s ease'
+                    }}
+                  >
+                    <User size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    disabled={loading}
+                    autoFocus
+                    autoComplete="username"
+                    style={{ paddingLeft: 34 }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'var(--c-text-2)',
+                    letterSpacing: '0.02em',
+                    marginBottom: 6
+                  }}
+                >
+                  Password
+                </label>
+                <div className="input-icon-wrap" style={{ position: 'relative' }}>
+                  <span
+                    className="input-icon"
+                    style={{
+                      position: 'absolute',
+                      left: 11,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      pointerEvents: 'none',
+                      color: 'var(--c-text-3)',
+                      transition: 'color 0.15s ease'
+                    }}
+                  >
+                    <Lock size={14} />
+                  </span>
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    className="input-field"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    disabled={loading}
+                    autoComplete="current-password"
+                    style={{ paddingLeft: 34, paddingRight: 40 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    style={{
+                      position: 'absolute',
+                      right: 11,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--c-text-3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 3
+                    }}
+                  >
+                    {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div
+                  className="animate-fade-in"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    padding: '9px 12px',
+                    background: 'rgba(239,68,68,0.1)',
+                    border: '1px solid rgba(239,68,68,0.25)',
+                    borderRadius: 8,
+                    color: '#f87171',
+                    fontSize: 12
+                  }}
+                >
+                  <AlertCircle size={13} style={{ flexShrink: 0 }} />
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={loading}
+                style={{ width: '100%', height: 44, marginTop: 4, justifyContent: 'center', fontSize: 13 }}
+              >
+                {loading ? (
+                  <>
+                    <Spinner size="sm" className="text-white" />
+                    Signing in…
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <ArrowRight size={15} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Footer */}
+            <div
+              style={{
+                marginTop: 28,
+                paddingTop: 16,
+                borderTop: '1px solid var(--c-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <p style={{ fontSize: 9.5, color: 'var(--c-text-3)' }}>
+                © {new Date().getFullYear()} Laoag City Gov&apos;t
+              </p>
               <span
                 style={{
-                  fontSize: 8.5,
-                  fontWeight: 600,
-                  padding: '1px 5px',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '2px 6px',
                   borderRadius: 5,
-                  background: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.07)',
-                  color: isDark ? '#3730a3' : '#818cf8',
-                  border: isDark
-                    ? '1px solid rgba(99,102,241,0.16)'
-                    : '1px solid rgba(99,102,241,0.13)'
+                  background: 'rgba(59,130,246,0.1)',
+                  color: '#3b82f6',
+                  border: '1px solid rgba(59,130,246,0.15)'
                 }}
               >
                 {APP_VERSION}

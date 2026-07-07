@@ -49,6 +49,7 @@ export function TricycleFormModal({ open, onClose, onSuccess, logActivity, tricy
     chassisNo: '',
     plateNo: '',
     franchiseNo: '',
+    ordinanceNumber: '',
     expiration: '',
     dateReceived: '',
     timeReceived: '',
@@ -68,6 +69,7 @@ export function TricycleFormModal({ open, onClose, onSuccess, logActivity, tricy
           chassisNo: tricycle.chassisNo ?? '',
           plateNo: tricycle.plateNo ?? '',
           franchiseNo: tricycle.franchiseNo ?? '',
+          ordinanceNumber: tricycle.ordinanceNumber ?? '',
           expiration: toInputDate(tricycle.expiration),
           dateReceived: toInputDate(tricycle.dateReceived),
           timeReceived: tricycle.timeReceived ?? '',
@@ -84,6 +86,7 @@ export function TricycleFormModal({ open, onClose, onSuccess, logActivity, tricy
           chassisNo: '',
           plateNo: '',
           franchiseNo: '',
+          ordinanceNumber: '',
           expiration: '',
           dateReceived: '',
           timeReceived: '',
@@ -186,6 +189,13 @@ export function TricycleFormModal({ open, onClose, onSuccess, logActivity, tricy
             value={form.franchiseNo}
             onChange={set('franchiseNo')}
             placeholder="Franchise number"
+          />
+        </FormField>
+        <FormField label="Ordinance Number">
+          <Input
+            value={form.ordinanceNumber}
+            onChange={set('ordinanceNumber')}
+            placeholder="Ordinance number"
           />
         </FormField>
         <FormField label="Expiration Date">
