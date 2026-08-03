@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchDocs } from '../lib/firebase'
+import { countDocs, fetchDocs } from '../lib/firebase'
 import { useAuthStore } from '../store/authStore'
 import { Layout } from '../components/layout/Layout'
 import aionxLogo from '../assets/aionx-logo.png'
@@ -411,60 +411,62 @@ export function DashboardPage() {
     if (isRefresh) setRefreshing(true)
     else setLoading(true)
     try {
-      const [logsRes, ordRes, resRes] = await Promise.allSettled([
+      const currentYear = new Date().getFullYear()
+      const parseLogDate = (s: string) => new Date(s?.replace(/^[A-Za-z]+,\s*/, '') ?? '').getTime()
+
+      const [
+        logsRes,
+        generalOrdinances,
+        appropriation,
+        taxOrdinances,
+        generalResolutions,
+        commendations,
+        posthumous
+      ] = await Promise.all([
         fetchDocs<Log>('laoag_logs', {
           orderByField: 'date',
-          direction: 'desc'
+          direction: 'desc',
+          pageSize: 20
         }),
-        fetchDocs<{ category: string }>('laoag_ordinances', {
-          orderByField: 'ordinanceNumber',
-          direction: 'desc'
+        countDocs('laoag_ordinances', {
+          filters: [{ field: 'category', op: '==', value: 'General Ordinance' }]
         }),
-        fetchDocs<{ category: string }>('laoag_resolutions', {
-          orderByField: 'resolutionNumber',
-          direction: 'desc'
+        countDocs('laoag_ordinances', {
+          filters: [{ field: 'category', op: '==', value: 'Appropriation' }]
+        }),
+        countDocs('laoag_ordinances', {
+          filters: [{ field: 'category', op: '==', value: 'Tax Ordinance' }]
+        }),
+        countDocs('laoag_resolutions', {
+          filters: [{ field: 'category', op: '==', value: 'General Resolutions' }]
+        }),
+        countDocs('laoag_resolutions', {
+          filters: [{ field: 'category', op: '==', value: 'Commendations' }]
+        }),
+        countDocs('laoag_resolutions', {
+          filters: [{ field: 'category', op: '==', value: 'Posthumous' }]
         })
       ])
 
-      if (logsRes.status === 'fulfilled') {
-        const currentYear = new Date().getFullYear()
-        const parseLogDate = (s: string) =>
-          new Date(s?.replace(/^[A-Za-z]+,\s*/, '') ?? '').getTime()
-        const yearLogs = logsRes.value.items.filter((l) => {
-          const m = l.date?.match(/\b(20\d{2})\b/)
-          return m ? parseInt(m[1]) === currentYear : false
-        })
-        yearLogs.sort((a, b) => {
-          const da = parseLogDate(a.date)
-          const db2 = parseLogDate(b.date)
-          return isNaN(da) || isNaN(db2) ? 0 : db2 - da
-        })
-        setLogs(yearLogs)
-      }
+      const yearLogs = logsRes.items.filter((l) => {
+        const m = l.date?.match(/\b(20\d{2})\b/)
+        return m ? parseInt(m[1]) === currentYear : false
+      })
+      yearLogs.sort((a, b) => {
+        const da = parseLogDate(a.date)
+        const db2 = parseLogDate(b.date)
+        return isNaN(da) || isNaN(db2) ? 0 : db2 - da
+      })
+      setLogs(yearLogs.slice(0, 10))
 
-      const ns: Stats = {
-        generalOrdinances: 0,
-        appropriation: 0,
-        taxOrdinances: 0,
-        generalResolutions: 0,
-        commendations: 0,
-        posthumous: 0
-      }
-      if (ordRes.status === 'fulfilled') {
-        ordRes.value.items.forEach((o) => {
-          if (o.category === 'General Ordinance') ns.generalOrdinances++
-          else if (o.category === 'Appropriation') ns.appropriation++
-          else if (o.category === 'Tax Ordinance') ns.taxOrdinances++
-        })
-      }
-      if (resRes.status === 'fulfilled') {
-        resRes.value.items.forEach((r) => {
-          if (r.category === 'General Resolutions') ns.generalResolutions++
-          else if (r.category === 'Commendations') ns.commendations++
-          else if (r.category === 'Posthumous') ns.posthumous++
-        })
-      }
-      setStats(ns)
+      setStats({
+        generalOrdinances,
+        appropriation,
+        taxOrdinances,
+        generalResolutions,
+        commendations,
+        posthumous
+      })
     } finally {
       setLoading(false)
       setRefreshing(false)

@@ -50,11 +50,12 @@ export function useListData<T>({
       const result = await fetchDocs<T>(collectionName, {
         orderByField,
         direction,
-        pageSize: isSearching || fetchAll ? undefined : limit,
-        filters: filtersRef.current
+        pageSize: fetchAll ? undefined : limit,
+        filters: filtersRef.current,
+        searchQuery
       })
       setItems(result.items)
-      setHasMore(isSearching || fetchAll ? false : result.hasMore)
+      setHasMore(fetchAll ? false : result.hasMore)
       lastDocRef.current = result.lastDoc
     } catch (err) {
       console.error(`[useListData] reload failed for ${collectionName}:`, err)
@@ -62,10 +63,10 @@ export function useListData<T>({
       setLoading(false)
       busyRef.current = false
     }
-  }, [collectionName, orderByField, direction, limit, filtersKey, isSearching, fetchAll]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [collectionName, orderByField, direction, limit, filtersKey, searchQuery, fetchAll]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadMore = useCallback(async () => {
-    if (busyRef.current || !lastDocRef.current || isSearchingRef.current || fetchAll) return
+    if (busyRef.current || !lastDocRef.current || fetchAll) return
     busyRef.current = true
     setLoadingMore(true)
     try {
@@ -74,7 +75,8 @@ export function useListData<T>({
         direction,
         pageSize: limit,
         after: lastDocRef.current,
-        filters: filtersRef.current
+        filters: filtersRef.current,
+        searchQuery
       })
       if (result.items.length > 0) {
         setItems((prev) => [...prev, ...result.items])
@@ -89,7 +91,7 @@ export function useListData<T>({
       setLoadingMore(false)
       busyRef.current = false
     }
-  }, [collectionName, orderByField, direction, limit, filtersKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [collectionName, orderByField, direction, limit, filtersKey, searchQuery]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void reload()
@@ -99,7 +101,7 @@ export function useListData<T>({
     items,
     loading,
     loadingMore,
-    hasMore: isSearching || fetchAll ? false : hasMore,
+    hasMore: fetchAll ? false : hasMore,
     reload,
     loadMore,
     sortField: orderByField,

@@ -79,7 +79,7 @@ function DraftOrdFormModal({
 }: {
   open: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (updatedRecord?: DraftOrdinance) => void
   logActivity: (a: string) => Promise<void>
   record?: DraftOrdinance
 }) {
@@ -121,8 +121,9 @@ function DraftOrdFormModal({
     }
     setSaving(true)
     try {
-      if (isEdit)
-        await updateDocumentWithFile(
+      let updatedRecord: DraftOrdinance | undefined
+      if (isEdit) {
+        const savedFilePath = await updateDocumentWithFile(
           'laoag_draft_ordinance',
           record!.id,
           { ...form },
@@ -132,7 +133,14 @@ function DraftOrdFormModal({
           record?.filePath ?? '',
           record?.fileType ?? ''
         )
-      else
+        updatedRecord = {
+          ...record!,
+          ...form,
+          id: record!.id,
+          filePath: savedFilePath,
+          fileType: file ? `.${file.name.split('.').pop() ?? ''}` : record?.fileType ?? ''
+        }
+      } else {
         await addDocumentWithFile(
           'laoag_draft_ordinance',
           { ...form },
@@ -140,11 +148,12 @@ function DraftOrdFormModal({
           `OrdinanceNo._${form.draftOrdinanceNumber}`,
           file
         )
+      }
       await logActivity(
         `${isEdit ? 'Updated' : 'Created'} Draft Ordinance ${form.draftOrdinanceNumber}`
       )
       toast.success(isEdit ? 'Updated' : 'Created')
-      onSuccess()
+      onSuccess(updatedRecord)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -246,7 +255,7 @@ export function DraftOrdinancesPage() {
       endpoint: 'laoag_draft_ordinance',
       sortParam: 'sessionNo|desc',
       dataKey: 'draftOrdinance',
-      limit: 0,
+      limit: 100,
       searchQuery: debouncedSearch
     })
   const [selected, setSelected] = useState<DraftOrdinance | null>(null)
@@ -270,7 +279,11 @@ export function DraftOrdinancesPage() {
             r.tag?.toLowerCase().includes(q) ||
             r.actionCommittee?.toLowerCase().includes(q)
         )
-    return [...result].sort((a, b) => {
+    const filtered = result.filter((r) => {
+      const parsed = parseSessionNo(r.sessionNo)
+      return parsed.group === 0 && parsed.primary >= 13
+    })
+    return [...filtered].sort((a, b) => {
       const sessionCmp = compareSessionNoDesc(a.sessionNo, b.sessionNo)
       if (sessionCmp !== 0) return sessionCmp
       return compareDraftNoDesc(a.draftOrdinanceNumber, b.draftOrdinanceNumber)
@@ -391,8 +404,13 @@ export function DraftOrdinancesPage() {
           <DraftOrdFormModal
             open={showEdit}
             onClose={() => setShowEdit(false)}
-            onSuccess={() => {
+            onSuccess={(updatedRecord) => {
               setShowEdit(false)
+              if (updatedRecord) {
+                setSelected((current) =>
+                  current?.id === updatedRecord.id ? { ...current, ...updatedRecord } : current
+                )
+              }
               reload()
             }}
             logActivity={logActivity}

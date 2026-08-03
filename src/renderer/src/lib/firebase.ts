@@ -18,6 +18,7 @@ import {
   writeBatch,
   increment,
   where,
+  getCountFromServer,
   type WhereFilterOp,
   type QueryDocumentSnapshot,
   type OrderByDirection
@@ -68,6 +69,36 @@ export interface FetchFilter {
   value: unknown
 }
 
+function normalizeSearchText(value: unknown): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildSearchText(data: Record<string, unknown>): string {
+  return normalizeSearchText(
+    Object.values(data)
+      .map((value) => {
+        if (value == null) return ''
+        if (typeof value === 'string') return value
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+        return JSON.stringify(value)
+      })
+      .join(' ')
+  )
+}
+
+function prepareDocumentData(data: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...data,
+    searchText: buildSearchText(data)
+  }
+}
+
 export async function fetchDocs<T>(
   collectionName: string,
   opts: {
@@ -76,22 +107,48 @@ export async function fetchDocs<T>(
     pageSize?: number
     after?: QueryDocumentSnapshot | null
     filters?: FetchFilter[]
+    searchQuery?: string
   }
 ): Promise<FetchResult<T>> {
   await ensureAuth()
-  const { orderByField, direction = 'desc', pageSize, after = null, filters = [] } = opts
+  const {
+    orderByField,
+    direction = 'desc',
+    pageSize,
+    after = null,
+    filters = [],
+    searchQuery
+  } = opts
   const col = collection(db, collectionName)
+  const normalizedSearch = normalizeSearchText(searchQuery)
+
+  // Build base query with filters and ordering
   const constraints = [
     ...filters.map((f) => where(f.field, f.op, f.value)),
     orderBy(orderByField, direction),
     ...(pageSize ? [limit(pageSize)] : []),
     ...(after ? [startAfter(after)] : [])
   ]
+
   const snap = await getDocs(query(col, ...constraints))
-  const items = snap.docs
+  let items = snap.docs
     .filter((d) => d.id !== '--count--')
     .map((d) => ({ id: d.id, ...d.data() })) as (T & { id: string })[]
-  return { items, lastDoc: snap.docs.at(-1) ?? null, hasMore: pageSize ? snap.docs.length >= pageSize : false }
+
+  // If searching, filter client-side on the already-fetched results
+  if (normalizedSearch) {
+    items = items.filter((item) => {
+      const record = item as Record<string, unknown>
+      const searchText = normalizeSearchText(record.searchText ?? buildSearchText(record))
+      return searchText.includes(normalizedSearch)
+    })
+  }
+
+  return {
+    items,
+    lastDoc: snap.docs.at(-1) ?? null,
+    hasMore: pageSize ? snap.docs.length >= pageSize : false
+  }
 }
 
 export async function addDocument(
@@ -99,7 +156,7 @@ export async function addDocument(
   data: Record<string, unknown>
 ): Promise<string> {
   await ensureAuth()
-  const ref2 = await addDoc(collection(db, collectionName), data)
+  const ref2 = await addDoc(collection(db, collectionName), prepareDocumentData(data))
   return ref2.id
 }
 
@@ -109,7 +166,7 @@ export async function updateDocument(
   data: Record<string, unknown>
 ): Promise<void> {
   await ensureAuth()
-  await updateDoc(doc(db, collectionName, id), data)
+  await updateDoc(doc(db, collectionName, id), prepareDocumentData(data))
 }
 
 export async function deleteDocument(collectionName: string, id: string): Promise<void> {
@@ -129,9 +186,38 @@ export async function queryDocuments<T>(
 
 // ── Storage ──────────────────────────────────────────────────────────────────
 
+function getStorageRef(filePathOrStoragePath: string) {
+  if (!filePathOrStoragePath) return null
+
+  if (/^https?:\/\//i.test(filePathOrStoragePath)) {
+    try {
+      const url = new URL(filePathOrStoragePath)
+      const encodedPath = url.pathname.split('/o/')[1]
+      if (!encodedPath) return ref(storage, filePathOrStoragePath)
+      const decodedPath = decodeURIComponent(encodedPath)
+      return ref(storage, decodedPath)
+    } catch {
+      return ref(storage, filePathOrStoragePath)
+    }
+  }
+
+  return ref(storage, filePathOrStoragePath)
+}
+
+function getUniqueStorageFilename(filename: string, file: File | null): string {
+  if (!file) return filename
+
+  const ext = file.name.split('.').pop() ?? ''
+  const safeBase = filename.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/_+/g, '_')
+  const uniqueSuffix = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+
+  return ext ? `${safeBase}_${uniqueSuffix}.${ext}` : `${safeBase}_${uniqueSuffix}`
+}
+
 export async function uploadFile(folder: string, filename: string, file: File): Promise<string> {
   await ensureAuth()
-  const storageRef = ref(storage, `${folder}/${filename}`)
+  const storageFilename = getUniqueStorageFilename(filename, file)
+  const storageRef = ref(storage, `${folder}/${storageFilename}`)
   await uploadBytes(storageRef, file)
   return getDownloadURL(storageRef)
 }
@@ -158,7 +244,7 @@ export async function addDocumentWithFile(
     fileType = `.${ext}`
   }
   const newDocRef = doc(collection(db, collectionName))
-  const fullData = { ...data, filePath, fileType, id: newDocRef.id }
+  const fullData = { ...prepareDocumentData(data), filePath, fileType, id: newDocRef.id }
   const batch = writeBatch(db)
   batch.set(newDocRef, fullData)
   const countsRef = doc(db, collectionName, '--count--')
@@ -185,7 +271,7 @@ export async function updateDocumentWithFile(
   file: File | null,
   existingFilePath: string,
   existingFileType: string
-): Promise<void> {
+): Promise<string> {
   if (file) {
     const ext = file.name.split('.').pop() ?? ''
     const filePath = await uploadFile(storageFolder, storageFilename, file)
@@ -200,16 +286,18 @@ export async function updateDocumentWithFile(
     }
     if (existingFilePath) {
       try {
-        await deleteObject(ref(storage, existingFilePath))
+        await deleteObject(getStorageRef(existingFilePath) ?? ref(storage, ''))
       } catch {}
     }
-  } else {
-    await updateDocument(collectionName, id, {
-      ...data,
-      filePath: existingFilePath,
-      fileType: existingFileType
-    })
+    return filePath
   }
+
+  await updateDocument(collectionName, id, {
+    ...data,
+    filePath: existingFilePath,
+    fileType: existingFileType
+  })
+  return existingFilePath
 }
 
 export async function deleteDocumentWithFile(
@@ -229,7 +317,7 @@ export async function deleteDocumentWithFile(
   await batch.commit()
   if (filePath) {
     try {
-      await deleteObject(ref(storage, filePath))
+      await deleteObject(getStorageRef(filePath) ?? ref(storage, ''))
     } catch {}
   }
 }
@@ -260,7 +348,7 @@ export async function addDocumentWithCount(
   await ensureAuth()
   const batch = writeBatch(db)
   const newDocRef = doc(collection(db, collectionName))
-  batch.set(newDocRef, { ...data, id: newDocRef.id })
+  batch.set(newDocRef, { ...prepareDocumentData(data), id: newDocRef.id })
   const countsRef = doc(db, collectionName, '--count--')
   batch.set(countsRef, { count: increment(1) }, { merge: true })
   await batch.commit()
@@ -274,6 +362,31 @@ export async function deleteDocumentWithCount(collectionName: string, id: string
   const countsRef = doc(db, collectionName, '--count--')
   batch.set(countsRef, { count: increment(-1) }, { merge: true })
   await batch.commit()
+}
+
+export async function countDocs(
+  collectionName: string,
+  opts?: {
+    filters?: FetchFilter[]
+    searchQuery?: string
+    searchFields?: string[]
+  }
+): Promise<number> {
+  await ensureAuth()
+  const col = collection(db, collectionName)
+  const normalizedSearch = normalizeSearchText(opts?.searchQuery)
+  const effectiveSearchFields = (opts?.searchFields?.filter(Boolean) ?? ['searchText']).filter(Boolean)
+  const constraints = [
+    ...(opts?.filters?.map((f) => where(f.field, f.op, f.value)) ?? []),
+    ...(normalizedSearch && effectiveSearchFields.length
+      ? [
+          where(effectiveSearchFields[0], '>=', normalizedSearch),
+          where(effectiveSearchFields[0], '<=', `${normalizedSearch}\uf8ff`)
+        ]
+      : [])
+  ]
+  const snap = await getCountFromServer(query(col, ...constraints))
+  return snap.data().count
 }
 
 export async function getCollectionCounts(collectionName: string): Promise<Record<string, number>> {

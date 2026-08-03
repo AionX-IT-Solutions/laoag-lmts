@@ -83,7 +83,7 @@ function DraftResFormModal({
 }: {
   open: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (updatedRecord?: DraftResolution) => void
   logActivity: (a: string) => Promise<void>
   record?: DraftResolution
 }) {
@@ -124,8 +124,9 @@ function DraftResFormModal({
     }
     setSaving(true)
     try {
-      if (isEdit)
-        await updateDocumentWithFile(
+      let updatedRecord: DraftResolution | undefined
+      if (isEdit) {
+        const savedFilePath = await updateDocumentWithFile(
           'laoag_draft_resolution',
           record!.id,
           { ...form },
@@ -135,7 +136,14 @@ function DraftResFormModal({
           record?.filePath ?? '',
           record?.fileType ?? ''
         )
-      else
+        updatedRecord = {
+          ...record!,
+          ...form,
+          id: record!.id,
+          filePath: savedFilePath,
+          fileType: file ? `.${file.name.split('.').pop() ?? ''}` : record?.fileType ?? ''
+        }
+      } else {
         await addDocumentWithFile(
           'laoag_draft_resolution',
           { ...form },
@@ -143,11 +151,12 @@ function DraftResFormModal({
           `ResolutionNo._${form.draftResolutionNumber}`,
           file
         )
+      }
       await logActivity(
         `${isEdit ? 'Updated' : 'Created'} Draft Resolution ${form.draftResolutionNumber}`
       )
       toast.success(isEdit ? 'Updated' : 'Created')
-      onSuccess()
+      onSuccess(updatedRecord)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -252,7 +261,7 @@ export function DraftResolutionsPage() {
       endpoint: 'laoag_draft_resolution',
       sortParam: 'sessionNo|desc',
       dataKey: 'draftResolution',
-      limit: 0,
+      limit: 100,
       searchQuery: debouncedSearch
     })
   const [selected, setSelected] = useState<DraftResolution | null>(null)
@@ -276,7 +285,11 @@ export function DraftResolutionsPage() {
             r.tag?.toLowerCase().includes(q) ||
             r.dateReceived?.toLowerCase().includes(q)
         )
-    return [...result].sort((a, b) => {
+    const filtered = result.filter((r) => {
+      const parsed = parseSessionNo(r.sessionNo)
+      return parsed.group === 0 && parsed.primary >= 13
+    })
+    return [...filtered].sort((a, b) => {
       const sessionCmp = compareSessionNoDesc(a.sessionNo, b.sessionNo)
       if (sessionCmp !== 0) return sessionCmp
       return compareDraftNoDesc(a.draftResolutionNumber, b.draftResolutionNumber)
@@ -397,8 +410,13 @@ export function DraftResolutionsPage() {
           <DraftResFormModal
             open={showEdit}
             onClose={() => setShowEdit(false)}
-            onSuccess={() => {
+            onSuccess={(updatedRecord) => {
               setShowEdit(false)
+              if (updatedRecord) {
+                setSelected((current) =>
+                  current?.id === updatedRecord.id ? { ...current, ...updatedRecord } : current
+                )
+              }
               reload()
             }}
             logActivity={logActivity}
