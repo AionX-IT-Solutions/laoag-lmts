@@ -66,7 +66,11 @@ export function OrdinancesPage() {
     Record<string, unknown>
   >({
     endpoint: 'laoag_ordinances',
-    sortParam: 'ordinanceNumber|desc',
+    // codeSortKey is a backfilled, zero-padded field (see computeCodeSortKey
+    // in utils.ts) that orders correctly at the Firestore level, so
+    // pagination no longer has to guess — page 1 already contains the most
+    // recent records.
+    sortParam: 'codeSortKey|desc',
     dataKey: 'ordinance',
     limit: 100,
     filters,

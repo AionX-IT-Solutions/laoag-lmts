@@ -24,8 +24,11 @@ export function useListData<T>({
   const direction = (parts[1] === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc'
   const filtersKey = JSON.stringify(filters ?? [])
   const isSearching = (searchQuery ?? '').trim().length > 0
-  // limit === 0 means "fetch all records" — disables pagination entirely
-  const fetchAll = limit === 0
+  // limit === 0 means "fetch all records" — disables pagination entirely.
+  // Also fetch everything while searching: pagination windows are cut by the
+  // page's raw sort order, so a match past page 1 would otherwise never be
+  // fetched to test against the search query.
+  const fetchAll = limit === 0 || isSearching
 
   const [items, setItems] = useState<(T & { id: string })[]>([])
   const [loading, setLoading] = useState(true)

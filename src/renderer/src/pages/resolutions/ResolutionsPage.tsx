@@ -58,7 +58,9 @@ export function ResolutionsPage() {
     Record<string, unknown>
   >({
     endpoint: 'laoag_resolutions',
-    sortParam: 'resolutionNumber|desc',
+    // See OrdinancesPage: codeSortKey is backfilled and Firestore-sortable,
+    // so pagination can rely on the server-side order again.
+    sortParam: 'codeSortKey|desc',
     dataKey: 'resolution',
     limit: 100,
     filters,

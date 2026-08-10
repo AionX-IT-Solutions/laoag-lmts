@@ -23,6 +23,7 @@ import {
   type QueryDocumentSnapshot,
   type OrderByDirection
 } from 'firebase/firestore'
+import { computeCodeSortKey } from './utils'
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBcrCxQEfKHaUKhVoRGDfZ2tSur3roTw0w',
@@ -93,10 +94,16 @@ function buildSearchText(data: Record<string, unknown>): string {
 }
 
 function prepareDocumentData(data: Record<string, unknown>): Record<string, unknown> {
-  return {
+  const result: Record<string, unknown> = {
     ...data,
     searchText: buildSearchText(data)
   }
+  if (typeof data.ordinanceNumber === 'string') {
+    result.codeSortKey = computeCodeSortKey(data.ordinanceNumber)
+  } else if (typeof data.resolutionNumber === 'string') {
+    result.codeSortKey = computeCodeSortKey(data.resolutionNumber)
+  }
+  return result
 }
 
 export async function fetchDocs<T>(
@@ -135,11 +142,14 @@ export async function fetchDocs<T>(
     .filter((d) => d.id !== '--count--')
     .map((d) => ({ id: d.id, ...d.data() })) as (T & { id: string })[]
 
-  // If searching, filter client-side on the already-fetched results
+  // If searching, filter client-side on the already-fetched results. Always
+  // recompute from the live fields rather than trusting a stored `searchText`
+  // — older/imported docs can have a stale or missing one that excludes
+  // fields like ordinanceNumber/resolutionNumber, making them unsearchable.
   if (normalizedSearch) {
     items = items.filter((item) => {
       const record = item as Record<string, unknown>
-      const searchText = normalizeSearchText(record.searchText ?? buildSearchText(record))
+      const searchText = normalizeSearchText(buildSearchText(record))
       return searchText.includes(normalizedSearch)
     })
   }
