@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore'
 import { Layout, PageContainer } from '../../components/layout/Layout'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { DataTable, Column } from '../../components/ui/DataTable'
+import { useColumnVisibility, ColumnsMenuButton } from '../../components/ui/ColumnsMenu'
 import { Badge } from '../../components/ui/Badge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
@@ -169,6 +170,8 @@ export function OfficialsPage() {
     dataKey: 'official',
     searchQuery: debouncedSearch
   })
+  const { visibleColumns, hidden, toggle } = useColumnVisibility(columns, 'sp-members')
+
   const [selected, setSelected] = useState<Official | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
@@ -227,6 +230,7 @@ export function OfficialsPage() {
           icon={<Users size={20} />}
           actions={
             <>
+              <ColumnsMenuButton columns={columns} hidden={hidden} onToggle={toggle} />
               <button className="btn-ghost" onClick={reload}>
                 <RefreshCw size={15} />
                 Refresh
@@ -261,7 +265,7 @@ export function OfficialsPage() {
         </div>
         <div className="card flex flex-col flex-1 min-h-0">
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             data={filtered}
             selectedId={selected?.id}
             onRowClick={setSelected}

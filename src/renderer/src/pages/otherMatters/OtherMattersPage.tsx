@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/authStore'
 import { Layout, PageContainer } from '../../components/layout/Layout'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { DataTable, Column } from '../../components/ui/DataTable'
+import { useColumnVisibility, ColumnsMenuButton } from '../../components/ui/ColumnsMenu'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
 import { FormField, Input } from '../../components/ui/FormField'
@@ -214,6 +215,8 @@ export function OtherMattersPage() {
     limit: 100,
     searchQuery: debouncedSearch
   })
+  const { visibleColumns, hidden, toggle } = useColumnVisibility(columns, 'other-matters')
+
   const [selected, setSelected] = useState<OtherMatter | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
@@ -280,6 +283,7 @@ export function OtherMattersPage() {
           icon={<Scroll size={20} />}
           actions={
             <>
+              <ColumnsMenuButton columns={columns} hidden={hidden} onToggle={toggle} />
               <button className="btn-ghost" onClick={reload}>
                 <RefreshCw size={15} />
                 Refresh
@@ -323,7 +327,7 @@ export function OtherMattersPage() {
         </div>
         <div className="card flex flex-col flex-1 min-h-0">
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             data={filtered}
             selectedId={selected?.id}
             onRowClick={setSelected}

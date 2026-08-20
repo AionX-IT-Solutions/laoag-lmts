@@ -4,10 +4,21 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { Activity, Loader2 } from 'lucide-react'
 import { Layout, PageContainer } from '../../components/layout/Layout'
 import { PageHeader } from '../../components/ui/PageHeader'
+import { useColumnVisibility, ColumnsMenuButton } from '../../components/ui/ColumnsMenu'
+import type { Column } from '../../components/ui/DataTable'
 import type { Log } from '../../types'
 import { sortByField } from '../../lib/utils'
 
+const columns: Column<Log>[] = [
+  { key: 'index', header: '#' },
+  { key: 'name', header: 'User' },
+  { key: 'activity', header: 'Activity' },
+  { key: 'date', header: 'Date / Time' }
+]
+
 export function LogsPage() {
+  const { hidden, toggle } = useColumnVisibility(columns, 'activity-log')
+  const visibleCount = columns.length - hidden.size
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
   const { items, loading, loadingMore, hasMore, loadMore, sortField, sortDirection } = useListData<Record<string, unknown>>({
@@ -51,14 +62,17 @@ export function LogsPage() {
           subtitle={`${filtered.length} records`}
           icon={<Activity size={18} />}
           actions={
-            <input
-              type="text"
-              placeholder="Search logs…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-field"
-              style={{ width: 220, paddingTop: 7, paddingBottom: 7, fontSize: 12 }}
-            />
+            <>
+              <ColumnsMenuButton columns={columns} hidden={hidden} onToggle={toggle} />
+              <input
+                type="text"
+                placeholder="Search logs…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input-field"
+                style={{ width: 220, paddingTop: 7, paddingBottom: 7, fontSize: 12 }}
+              />
+            </>
           }
         />
 
@@ -99,23 +113,25 @@ export function LogsPage() {
                       borderBottom: '1px solid var(--c-divider)'
                     }}
                   >
-                    {['#', 'User', 'Activity', 'Date / Time'].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: '10px 16px',
-                          textAlign: 'left',
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: 'var(--c-text-3)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.07em',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
+                    {columns
+                      .filter((c) => !hidden.has(String(c.key)))
+                      .map((c) => (
+                        <th
+                          key={String(c.key)}
+                          style={{
+                            padding: '10px 16px',
+                            textAlign: 'left',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: 'var(--c-text-3)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.07em',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {c.header}
+                        </th>
+                      ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -125,49 +141,57 @@ export function LogsPage() {
                       className="table-row-hover"
                       style={{ borderBottom: '1px solid var(--c-divider)' }}
                     >
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          color: 'var(--c-text-3)',
-                          fontSize: 11,
-                          width: 48
-                        }}
-                      >
-                        {i + 1}
-                      </td>
-                      <td style={{ padding: '10px 16px', width: 160, whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#93c5fd' }}>
-                          {row.name}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          color: 'var(--c-text-2)',
-                          maxWidth: 400,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {row.activity}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          color: 'var(--c-text-3)',
-                          width: 180,
-                          whiteSpace: 'nowrap',
-                          fontSize: 12
-                        }}
-                      >
-                        {row.date}
-                      </td>
+                      {!hidden.has('index') && (
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            color: 'var(--c-text-3)',
+                            fontSize: 11,
+                            width: 48
+                          }}
+                        >
+                          {i + 1}
+                        </td>
+                      )}
+                      {!hidden.has('name') && (
+                        <td style={{ padding: '10px 16px', width: 160, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#93c5fd' }}>
+                            {row.name}
+                          </span>
+                        </td>
+                      )}
+                      {!hidden.has('activity') && (
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            color: 'var(--c-text-2)',
+                            maxWidth: 400,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {row.activity}
+                        </td>
+                      )}
+                      {!hidden.has('date') && (
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            color: 'var(--c-text-3)',
+                            width: 180,
+                            whiteSpace: 'nowrap',
+                            fontSize: 12
+                          }}
+                        >
+                          {row.date}
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {loadingMore && (
                     <tr>
-                      <td colSpan={4}>
+                      <td colSpan={visibleCount}>
                         <div
                           style={{
                             display: 'flex',

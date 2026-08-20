@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore'
 import { Layout, PageContainer } from '../../components/layout/Layout'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { DataTable, Column } from '../../components/ui/DataTable'
+import { useColumnVisibility, ColumnsMenuButton } from '../../components/ui/ColumnsMenu'
 import { Badge } from '../../components/ui/Badge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import type { Ordinance } from '../../types'
@@ -77,6 +78,8 @@ export function OrdinancesPage() {
     searchQuery: debouncedSearch
   })
 
+  const { visibleColumns, hidden, toggle } = useColumnVisibility(columns, 'ordinances')
+
   const [selected, setSelected] = useState<Ordinance | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
@@ -147,6 +150,7 @@ export function OrdinancesPage() {
           icon={<ScrollText size={20} />}
           actions={
             <>
+              <ColumnsMenuButton columns={columns} hidden={hidden} onToggle={toggle} />
               <button className="btn-ghost" onClick={reload}>
                 <RefreshCw size={15} />
                 Refresh
@@ -237,7 +241,7 @@ export function OrdinancesPage() {
 
         <div className="card flex flex-col flex-1 min-h-0">
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             data={filtered}
             selectedId={selected?.id}
             onRowClick={(row) => setSelected(row as unknown as Ordinance)}

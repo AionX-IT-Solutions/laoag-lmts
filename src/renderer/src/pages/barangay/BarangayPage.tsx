@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/authStore'
 import { Layout, PageContainer } from '../../components/layout/Layout'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { DataTable, Column } from '../../components/ui/DataTable'
+import { useColumnVisibility, ColumnsMenuButton } from '../../components/ui/ColumnsMenu'
 import { Badge } from '../../components/ui/Badge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
@@ -379,6 +380,8 @@ export function BarangayPage() {
     limit: 100,
     searchQuery: debouncedSearch
   })
+  const { visibleColumns, hidden, toggle } = useColumnVisibility(columns, 'barangay-actions')
+
   const [selected, setSelected] = useState<BrgyAction | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
@@ -446,6 +449,7 @@ export function BarangayPage() {
           icon={<Building2 size={20} />}
           actions={
             <>
+              <ColumnsMenuButton columns={columns} hidden={hidden} onToggle={toggle} />
               <button className="btn-ghost" onClick={reload}>
                 <RefreshCw size={15} />
                 Refresh
@@ -489,7 +493,7 @@ export function BarangayPage() {
         </div>
         <div className="card flex flex-col flex-1 min-h-0">
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             data={filtered}
             selectedId={selected?.id}
             onRowClick={setSelected}

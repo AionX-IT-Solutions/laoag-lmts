@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/authStore'
 import { Layout, PageContainer } from '../../components/layout/Layout'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { DataTable, Column } from '../../components/ui/DataTable'
+import { useColumnVisibility, ColumnsMenuButton } from '../../components/ui/ColumnsMenu'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
 import { FormField, Input, Select } from '../../components/ui/FormField'
@@ -53,6 +54,7 @@ const columns: Column<DraftResolution>[] = [
   { key: 'title', header: 'Title' },
   { key: 'author', header: 'Author/Sponsor', width: 'w-40' },
   { key: 'tag', header: 'Tag', width: 'w-40' },
+  { key: 'actionOfOfficer', header: 'Action', width: 'w-40' },
   {
     key: 'dateReceived',
     header: 'Date Received',
@@ -264,6 +266,8 @@ export function DraftResolutionsPage() {
       limit: 100,
       searchQuery: debouncedSearch
     })
+  const { visibleColumns, hidden, toggle } = useColumnVisibility(columns, 'draft-resolutions')
+
   const [selected, setSelected] = useState<DraftResolution | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
@@ -342,6 +346,7 @@ export function DraftResolutionsPage() {
           icon={<FileEdit size={20} />}
           actions={
             <>
+              <ColumnsMenuButton columns={columns} hidden={hidden} onToggle={toggle} />
               <button className="btn-ghost" onClick={reload}>
                 <RefreshCw size={15} />
                 Refresh
@@ -386,7 +391,7 @@ export function DraftResolutionsPage() {
         </div>
         <div className="card flex flex-col flex-1 min-h-0">
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             data={filtered}
             selectedId={selected?.id}
             onRowClick={setSelected}

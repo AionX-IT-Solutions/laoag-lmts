@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore'
 import { Layout, PageContainer } from '../../components/layout/Layout'
 import { PageHeader } from '../../components/ui/PageHeader'
 import { DataTable, Column } from '../../components/ui/DataTable'
+import { useColumnVisibility, ColumnsMenuButton } from '../../components/ui/ColumnsMenu'
 import { Badge } from '../../components/ui/Badge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import type { Resolution } from '../../types'
@@ -66,6 +67,8 @@ export function ResolutionsPage() {
     filters,
     searchQuery: debouncedSearch
   })
+
+  const { visibleColumns, hidden, toggle } = useColumnVisibility(columns, 'resolutions')
 
   const [selected, setSelected] = useState<Resolution | null>(null)
   const [showAdd, setShowAdd] = useState(false)
@@ -137,6 +140,7 @@ export function ResolutionsPage() {
           icon={<FileCheck size={20} />}
           actions={
             <>
+              <ColumnsMenuButton columns={columns} hidden={hidden} onToggle={toggle} />
               <button className="btn-ghost" onClick={reload}>
                 <RefreshCw size={15} />
                 Refresh
@@ -225,7 +229,7 @@ export function ResolutionsPage() {
         </div>
         <div className="card flex flex-col flex-1 min-h-0">
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
             data={filtered}
             selectedId={selected?.id}
             onRowClick={(row) => setSelected(row as unknown as Resolution)}
