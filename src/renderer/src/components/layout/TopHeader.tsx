@@ -118,9 +118,14 @@ export function TopHeader() {
       )
     })
 
+    const offError = ipc.on('update-error', (_e, message: string) => {
+      toast.error(`Update failed: ${message}`, { duration: 8000 })
+    })
+
     return () => {
       offAvailable()
       offDownloaded()
+      offError()
     }
   }, [])
   const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') : 'User'

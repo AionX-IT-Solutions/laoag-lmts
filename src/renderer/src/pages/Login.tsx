@@ -10,7 +10,7 @@ import aionxLogo from '../assets/aionx-logo.png'
 import lmtsLogo from '../assets/lmts-logo.png'
 import bcrypt from 'bcryptjs'
 
-const APP_VERSION = 'v2.0.0'
+const APP_VERSION = 'v1.1.1'
 
 const FEATURES = [
   'Ordinance & Resolution Management',

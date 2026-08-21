@@ -3,6 +3,13 @@ import { join } from 'path'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 
+// Set right before quitAndInstall() so the window-close interception below
+// steps aside — quitAndInstall needs the app to exit promptly so the NSIS
+// installer can replace the running app's files; delaying that close with
+// our own async cleanup was silently starving the installer handoff, which
+// is why "downloaded" updates weren't actually landing after restart.
+let isInstallingUpdate = false
+
 function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -30,6 +37,7 @@ function createWindow(): BrowserWindow {
   })
 
   mainWindow.on('close', (e) => {
+    if (isInstallingUpdate) return
     e.preventDefault()
     mainWindow.webContents
       .executeJavaScript("localStorage.removeItem('lmts-auth')")
@@ -73,6 +81,7 @@ function setupAutoUpdater(mainWindow: BrowserWindow): void {
 
   autoUpdater.on('error', (err) => {
     console.error('[AutoUpdater]', err.message)
+    mainWindow.webContents.send('update-error', err.message)
   })
 
   // Check for updates 5 seconds after launch (only in packaged app)
@@ -82,6 +91,7 @@ function setupAutoUpdater(mainWindow: BrowserWindow): void {
 }
 
 ipcMain.on('install-update', () => {
+  isInstallingUpdate = true
   autoUpdater.quitAndInstall()
 })
 
